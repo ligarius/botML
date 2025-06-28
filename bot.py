@@ -34,18 +34,22 @@ def klines_to_df(klines):
     # Convierte los tipos a float/integers útiles
     for col in ['open', 'high', 'low', 'close', 'volume']:
         df[col] = df[col].astype(float)
-    df['open_time'] = pd.to_datetime(df['open_time'], unit='ms')
+    # Mantener las marcas de tiempo como enteros (ms)
+    df['open_time'] = df['open_time'].astype('int64')
     return df
 
 def save_to_sqlite(df, symbol, conn):
     table = f"_{symbol}"
-    df.to_sql(table, conn, if_exists='append', index=False)
+    # Asegurar que open_time se guarda como INTEGER (ms)
+    df['open_time'] = df['open_time'].astype('int64')
+    df.to_sql(table, conn, if_exists='append', index=False,
+              dtype={'open_time': 'INTEGER'})
 
 def initialize_table(conn, symbol):
     table = f"_{symbol}"
     create_sql = f"""
     CREATE TABLE IF NOT EXISTS {table} (
-        open_time TEXT PRIMARY KEY,
+        open_time INTEGER PRIMARY KEY,
         open REAL, high REAL, low REAL, close REAL, volume REAL,
         close_time INTEGER, quote_asset_volume TEXT,
         num_trades INTEGER, taker_buy_base TEXT,
@@ -69,7 +73,7 @@ def download_and_store_all():
                 break
             df = klines_to_df(klines)
             save_to_sqlite(df, symbol, conn)
-            since = int(df['open_time'].iloc[-1].timestamp() * 1000) + 60_000
+            since = int(df['open_time'].iloc[-1]) + 60_000
             time.sleep(0.5)  # No saturar la API
     conn.close()
 
