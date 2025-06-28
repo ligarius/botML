@@ -58,19 +58,32 @@ def initialize_table(conn, symbol):
 def download_and_store_all():
     symbols = get_top_30_symbols()
     conn = sqlite3.connect('binance_1m.db')
+
+    # Start seven days ago
+    start_ts = int((time.time() - 7 * 24 * 60 * 60) * 1000)
+    now_ms = int(time.time() * 1000)
+
     for symbol in symbols:
         print(f"Descargando {symbol}...")
         initialize_table(conn, symbol)
-        # Descarga 10.000 velas (10 tramos de 1000)
-        since = None
-        for _ in range(10):
-            klines = fetch_klines(symbol, '1m', 1000, start_time=since)
+        since = start_ts
+
+        # Loop until we reach current time or no more data
+        while since < now_ms:
+            end_ts = since + 1000 * 60  # request up to 1000 minutes
+            if end_ts > now_ms:
+                end_ts = now_ms
+
+            klines = fetch_klines(symbol, '1m', 1000, start_time=since, end_time=end_ts)
             if not klines:
                 break
+
             df = klines_to_df(klines)
             save_to_sqlite(df, symbol, conn)
+
             since = int(df['open_time'].iloc[-1].timestamp() * 1000) + 60_000
             time.sleep(0.5)  # No saturar la API
+
     conn.close()
 
 if __name__ == '__main__':
