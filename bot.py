@@ -5,9 +5,15 @@ import time
 
 BINANCE_API = 'https://api.binance.com'
 
+# Reuse a single session for all requests
+session = requests.Session()
+
+# Default timeout for network operations
+TIMEOUT = 10
+
 def get_top_30_symbols():
     # Obtener tickers ordenados por volumen, excluyendo stablecoins comunes
-    r = requests.get(BINANCE_API + '/api/v3/ticker/24hr').json()
+    r = session.get(BINANCE_API + '/api/v3/ticker/24hr', timeout=TIMEOUT).json()
     # Puedes filtrar más según tu preferencia (solo spot, excluir BUSD/USDT)
     sorted_tickers = sorted(
         [x for x in r if not x['symbol'].endswith('BUSD') and not x['symbol'].endswith('USDT')],
@@ -23,7 +29,7 @@ def fetch_klines(symbol, interval='1m', limit=1000, start_time=None, end_time=No
         params['startTime'] = start_time
     if end_time:
         params['endTime'] = end_time
-    data = requests.get(url, params=params).json()
+    data = session.get(url, params=params, timeout=TIMEOUT).json()
     return data
 
 def klines_to_df(klines):
