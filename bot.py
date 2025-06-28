@@ -45,7 +45,14 @@ def klines_to_df(klines):
 
 def save_to_sqlite(df, symbol, conn):
     table = f"_{symbol}"
-    df.to_sql(table, conn, if_exists='append', index=False)
+    # Remove duplicate rows to avoid primary key conflicts
+    df = df.drop_duplicates(subset=["open_time"]).copy()
+    df["open_time"] = df["open_time"].astype(str)
+    columns = df.columns.tolist()
+    placeholders = ",".join(["?"] * len(columns))
+    insert_sql = f"INSERT OR IGNORE INTO {table} ({','.join(columns)}) VALUES ({placeholders})"
+    conn.executemany(insert_sql, df.astype(object).values.tolist())
+    conn.commit()
 
 def initialize_table(conn, symbol):
     table = f"_{symbol}"
