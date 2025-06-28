@@ -5,26 +5,56 @@ import time
 
 BINANCE_API = 'https://api.binance.com'
 
-def get_top_30_symbols():
-    # Obtener tickers ordenados por volumen, excluyendo stablecoins comunes
-    r = requests.get(BINANCE_API + '/api/v3/ticker/24hr').json()
-    # Puedes filtrar más según tu preferencia (solo spot, excluir BUSD/USDT)
-    sorted_tickers = sorted(
-        [x for x in r if not x['symbol'].endswith('BUSD') and not x['symbol'].endswith('USDT')],
-        key=lambda x: float(x['quoteVolume']), reverse=True
-    )
-    symbols = [x['symbol'] for x in sorted_tickers[:30]]
-    return symbols
+def get_top_30_symbols(retries: int = 3, delay: int = 2):
+    """Return a list of the 30 highest volume symbols on Binance."""
+    url = BINANCE_API + '/api/v3/ticker/24hr'
+    for attempt in range(1, retries + 1):
+        try:
+            resp = requests.get(url, timeout=10)
+            if resp.status_code == 200:
+                tickers = resp.json()
+                break
+            else:
+                print(f"Attempt {attempt}/{retries} failed with status {resp.status_code}")
+        except requests.RequestException as exc:
+            print(f"Attempt {attempt}/{retries} failed: {exc}")
+        time.sleep(delay)
+    else:
+        print("Failed to fetch tickers after multiple attempts.")
+        return []
 
-def fetch_klines(symbol, interval='1m', limit=1000, start_time=None, end_time=None):
+    sorted_tickers = sorted(
+        [x for x in tickers if not x['symbol'].endswith('BUSD') and not x['symbol'].endswith('USDT')],
+        key=lambda x: float(x['quoteVolume']),
+        reverse=True,
+    )
+    return [x['symbol'] for x in sorted_tickers[:30]]
+
+def fetch_klines(symbol, interval: str = '1m', limit: int = 1000,
+                 start_time: int | None = None, end_time: int | None = None,
+                 retries: int = 3, delay: int = 2):
     url = BINANCE_API + '/api/v3/klines'
     params = {'symbol': symbol, 'interval': interval, 'limit': limit}
     if start_time:
         params['startTime'] = start_time
     if end_time:
         params['endTime'] = end_time
-    data = requests.get(url, params=params).json()
-    return data
+
+    for attempt in range(1, retries + 1):
+        try:
+            resp = requests.get(url, params=params, timeout=10)
+            if resp.status_code == 200:
+                return resp.json()
+            else:
+                print(
+                    f"Attempt {attempt}/{retries} to fetch klines for {symbol} failed with status {resp.status_code}"
+                )
+        except requests.RequestException as exc:
+            print(f"Attempt {attempt}/{retries} to fetch klines for {symbol} failed: {exc}")
+        time.sleep(delay)
+
+    print(f"Failed to fetch klines for {symbol} after {retries} attempts.")
+    return []
 
 def klines_to_df(klines):
     columns = ['open_time', 'open', 'high', 'low', 'close', 'volume',
