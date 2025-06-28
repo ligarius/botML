@@ -55,14 +55,31 @@ def initialize_table(conn, symbol):
     conn.execute(create_sql)
     conn.commit()
 
+def get_latest_timestamp(symbol, conn):
+    """Return the newest open_time in milliseconds for the given symbol."""
+    table = f"_{symbol}"
+    cursor = conn.cursor()
+    try:
+        row = cursor.execute(f"SELECT MAX(open_time) FROM {table}").fetchone()
+    except sqlite3.OperationalError:
+        return None
+    latest = row[0]
+    if latest:
+        dt = pd.to_datetime(latest)
+        return int(dt.timestamp() * 1000)
+    return None
+
 def download_and_store_all():
     symbols = get_top_30_symbols()
     conn = sqlite3.connect('binance_1m.db')
     for symbol in symbols:
         print(f"Descargando {symbol}...")
         initialize_table(conn, symbol)
+        # Continuar desde la última vela almacenada
+        since = get_latest_timestamp(symbol, conn)
+        if since is not None:
+            since += 60_000  # empezar en la siguiente vela
         # Descarga 10.000 velas (10 tramos de 1000)
-        since = None
         for _ in range(10):
             klines = fetch_klines(symbol, '1m', 1000, start_time=since)
             if not klines:
