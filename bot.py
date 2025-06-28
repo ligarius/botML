@@ -6,14 +6,23 @@ import time
 BINANCE_API = 'https://api.binance.com'
 
 def get_top_30_symbols():
-    # Obtener tickers ordenados por volumen, excluyendo stablecoins comunes
+    """Return the 30 highest volume trading pairs excluding common stablecoins."""
     r = requests.get(BINANCE_API + '/api/v3/ticker/24hr').json()
-    # Puedes filtrar más según tu preferencia (solo spot, excluir BUSD/USDT)
+
+    # Suffixes for stablecoins that we want to filter out
+    stablecoin_suffixes = ("USDT", "BUSD", "USDC", "TUSD", "DAI")
+
     sorted_tickers = sorted(
-        [x for x in r if not x['symbol'].endswith('BUSD') and not x['symbol'].endswith('USDT')],
-        key=lambda x: float(x['quoteVolume']), reverse=True
+        [
+            x
+            for x in r
+            if not any(x["symbol"].endswith(suffix) for suffix in stablecoin_suffixes)
+        ],
+        key=lambda x: float(x["quoteVolume"]),
+        reverse=True,
     )
-    symbols = [x['symbol'] for x in sorted_tickers[:30]]
+
+    symbols = [x["symbol"] for x in sorted_tickers[:30]]
     return symbols
 
 def fetch_klines(symbol, interval='1m', limit=1000, start_time=None, end_time=None):

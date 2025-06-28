@@ -1,6 +1,8 @@
 # botML
 
-A simple bot that downloads 1‑minute candlestick data for the top 30 symbols on Binance (excluding common stablecoins) and stores the information in a local SQLite database.
+A simple bot that downloads 1‑minute candlestick data for the top 30 symbols on Binance. It filters out trading pairs that end with common stablecoin tickers (e.g. `USDT`, `BUSD`, `USDC`, `TUSD`, `DAI`) and stores the information in a local SQLite database.
+
+The function `get_top_30_symbols` now ignores pairs with any of these stablecoin suffixes when selecting the most active symbols.
 
 ## Requirements
 
