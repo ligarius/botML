@@ -70,7 +70,7 @@ def download_and_store_all():
 
         # Loop until we reach current time or no more data
         while since < now_ms:
-            end_ts = since + 1000 * 60  # request up to 1000 minutes
+            end_ts = since + 1000 * 60 * 1000  # request up to 1000 minutes
             if end_ts > now_ms:
                 end_ts = now_ms
 
@@ -81,7 +81,7 @@ def download_and_store_all():
             df = klines_to_df(klines)
             save_to_sqlite(df, symbol, conn)
 
-            since = int(df['open_time'].iloc[-1].timestamp() * 1000) + 60_000
+            since += 1000 * 60 * 1000
             time.sleep(0.5)  # No saturar la API
 
     conn.close()
