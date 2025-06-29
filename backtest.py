@@ -31,12 +31,14 @@ class Backtester:
                  account_size: float = 1000.0,
                  risk_manager: Optional[RiskManager] = None,
                  sizer: Optional[PositionSizer] = None,
-                 equity_curve_file: Optional[str] = None):
+                 equity_curve_file: Optional[str] = None,
+                 commission_pct: float = 0.0):
         self.data = data.reset_index(drop=True)
         self.strategy = strategy
         self.account_size = account_size
         self.risk_manager = risk_manager or RiskManager(account_size)
         self.sizer = sizer or PositionSizer(account_size)
+        self.commission_pct = commission_pct
         self.equity = account_size
         self.equity_curve = [account_size]
         self.equity_curve_file = equity_curve_file or CONFIG.get('equity_curve_file', 'equity_curve.csv')
@@ -53,7 +55,8 @@ class Backtester:
             pnl = (price - trade.entry_price) * trade.size
         else:
             pnl = (trade.entry_price - price) * trade.size
-        self.equity += pnl
+        commission = (trade.entry_price + price) * trade.size * self.commission_pct
+        self.equity += pnl - commission
         self.equity_curve.append(self.equity)
         self.open_trade = None
 
