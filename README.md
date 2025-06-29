@@ -85,7 +85,12 @@ history_days: 30
 log_level: DEBUG
 retry_attempts: 5
 retry_backoff: 2.0
+log_rotation: true
+log_format: json
 ```
+The `log_rotation` flag enables a rotating file handler using the `log_max_bytes`
+and `log_backup_count` options in `config.yaml`. Setting `log_format` to `json`
+produces structured logs useful for downstream processing.
 
 ## Feature engineering (`features.py`)
 

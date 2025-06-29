@@ -13,7 +13,7 @@ from botml.risk import PositionSizer, RiskManager
 from botml.utils import load_config, setup_logging
 
 CONFIG = load_config()
-setup_logging(CONFIG)
+LOGGER = setup_logging(CONFIG, __name__)
 
 BINANCE_URL = CONFIG.get('api_url', 'https://api.binance.com')
 API_KEY = CONFIG.get('api_key')
