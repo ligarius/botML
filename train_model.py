@@ -12,6 +12,7 @@ with open(Path(__file__).resolve().parent / 'config.yaml', 'r') as fh:
 
 DB_PATH = CONFIG.get('database_path', 'binance_1m.db')
 SYMBOL = (CONFIG.get('symbols') or ['BTCUSDT'])[0]
+model_path = f"rf_{SYMBOL.lower()}.pkl"
 
 # 1. Cargar datos históricos
 conn = sqlite3.connect(DB_PATH)
@@ -54,5 +55,6 @@ preds = clf.predict(test[features])
 # ... calcula métricas de trading y precisión
 
 # 7. Guardar modelo
-with open('rf_btcusdt.pkl', 'wb') as f:
+with open(model_path, 'wb') as f:
     pickle.dump(clf, f)
+print(f"Model saved to {model_path}")
