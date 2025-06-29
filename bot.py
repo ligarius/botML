@@ -2,6 +2,14 @@ import requests
 import pandas as pd
 import sqlite3
 import time
+import logging
+
+logging.basicConfig(level=logging.ERROR, format='%(asctime)s %(levelname)s: %(message)s')
+
+
+class BinanceAPIError(Exception):
+    """Custom exception for Binance API errors."""
+    pass
 
 BINANCE_API = 'https://api.binance.com'
 
@@ -12,9 +20,17 @@ session = requests.Session()
 TIMEOUT = 10
 
 def get_top_30_symbols():
-    # Obtener tickers ordenados por volumen, excluyendo stablecoins comunes
-    r = session.get(BINANCE_API + '/api/v3/ticker/24hr', timeout=TIMEOUT).json()
-    # Puedes filtrar más según tu preferencia (solo spot, excluir BUSD/USDT)
+    """Return the top 30 symbols by volume excluding common stablecoins."""
+    try:
+        response = session.get(BINANCE_API + '/api/v3/ticker/24hr', timeout=TIMEOUT)
+        if response.status_code != 200:
+            logging.error("Failed to fetch tickers: %s - %s", response.status_code, response.text)
+            return []
+        r = response.json()
+    except requests.exceptions.RequestException as exc:
+        logging.error("Error requesting tickers: %s", exc)
+        return []
+
     sorted_tickers = sorted(
         [x for x in r if not x['symbol'].endswith('BUSD') and not x['symbol'].endswith('USDT')],
         key=lambda x: float(x['quoteVolume']), reverse=True
@@ -23,13 +39,28 @@ def get_top_30_symbols():
     return symbols
 
 def fetch_klines(symbol, interval='1m', limit=1000, start_time=None, end_time=None):
+    """Fetch candlestick data for a symbol.
+
+    Raises BinanceAPIError on request failures.
+    """
     url = BINANCE_API + '/api/v3/klines'
     params = {'symbol': symbol, 'interval': interval, 'limit': limit}
     if start_time:
         params['startTime'] = start_time
     if end_time:
         params['endTime'] = end_time
-    data = session.get(url, params=params, timeout=TIMEOUT).json()
+
+    try:
+        response = session.get(url, params=params, timeout=TIMEOUT)
+        if response.status_code != 200:
+            msg = f"Failed to fetch klines for {symbol}: {response.status_code} - {response.text}"
+            logging.error(msg)
+            raise BinanceAPIError(msg)
+        data = response.json()
+    except requests.exceptions.RequestException as exc:
+        logging.error("Network error while fetching klines for %s: %s", symbol, exc)
+        raise BinanceAPIError(str(exc))
+
     return data
 
 def klines_to_df(klines):
