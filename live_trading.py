@@ -21,15 +21,37 @@ API_SECRET = CONFIG.get('api_secret')
 
 
 class BinanceClient:
-    """Minimal Binance REST API client for order execution."""
+    """Minimal Binance REST API client for order execution with retries."""
 
     def __init__(self, api_key: str, api_secret: str, base_url: str = BINANCE_URL):
         self.api_key = api_key
         self.api_secret = api_secret.encode()
         self.base_url = base_url
+        self.retry_attempts = CONFIG.get('retry_attempts', 3)
+        self.retry_backoff = CONFIG.get('retry_backoff', 1.0)
         self.session = requests.Session()
         if api_key:
             self.session.headers.update({'X-MBX-APIKEY': api_key})
+
+    def reconnect(self) -> None:
+        """Create a new HTTP session."""
+        self.session.close()
+        self.session = requests.Session()
+        if self.api_key:
+            self.session.headers.update({'X-MBX-APIKEY': self.api_key})
+
+    def _request(self, method: str, endpoint: str, **kwargs) -> requests.Response:
+        """Perform a request with retry logic."""
+        for attempt in range(1, self.retry_attempts + 1):
+            try:
+                resp = self.session.request(method, self.base_url + endpoint, timeout=10, **kwargs)
+                resp.raise_for_status()
+                return resp
+            except requests.RequestException as exc:
+                if attempt == self.retry_attempts:
+                    raise
+                time.sleep(self.retry_backoff * attempt)
+                self.reconnect()
 
     def _sign_params(self, params: dict) -> dict:
         query = urlencode(params)
@@ -40,8 +62,10 @@ class BinanceClient:
     def create_order(self, **params):
         params.setdefault('timestamp', int(time.time() * 1000))
         signed = self._sign_params(params)
-        response = self.session.post(self.base_url + '/api/v3/order', params=signed, timeout=10)
-        response.raise_for_status()
+        try:
+            response = self._request('post', '/api/v3/order', params=signed)
+        except requests.RequestException as exc:
+            raise RuntimeError(f"Order request failed: {exc}") from exc
         return response.json()
 
 
@@ -68,14 +92,44 @@ class LiveTrader:
         self.risk_manager = risk_manager or RiskManager(account_size)
         self.open_trades = []
 
-    def open_trade(self, price: float, direction: str = "long") -> Trade:
+    def reconnect(self) -> None:
+        """Reconnect the Binance client."""
+        self.client.reconnect()
+
+    def resume(self) -> None:
+        """Resume trading after a connection drop."""
+        self.reconnect()
+
+    def open_trade(self, price: float, direction: str = "long", bracket: bool = False) -> Trade:
         stop = self.risk_manager.stop_loss_price(price, direction)
         take_profit = self.risk_manager.take_profit_price(price, direction)
         size = self.sizer.size_from_stop(price, stop)
         side = 'BUY' if direction == 'long' else 'SELL'
-        order = self.client.create_order(symbol=self.symbol, side=side, type='MARKET', quantity=size)
+        self.client.create_order(symbol=self.symbol, side=side, type='MARKET', quantity=size)
         trade = Trade(price, direction, size, stop, take_profit)
         self.open_trades.append(trade)
+        if bracket:
+            opposite = 'SELL' if direction == 'long' else 'BUY'
+            try:
+                self.client.create_order(
+                    symbol=self.symbol,
+                    side=opposite,
+                    type='STOP_MARKET',
+                    stopPrice=stop,
+                    closePosition='true'
+                )
+            except Exception:
+                pass
+            try:
+                self.client.create_order(
+                    symbol=self.symbol,
+                    side=opposite,
+                    type='TAKE_PROFIT_MARKET',
+                    stopPrice=take_profit,
+                    closePosition='true'
+                )
+            except Exception:
+                pass
         return trade
 
     def update_equity(self, equity: float) -> bool:
