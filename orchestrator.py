@@ -1,4 +1,6 @@
 import argparse
+import csv
+import json
 import logging
 import pickle
 import sqlite3
@@ -38,7 +40,8 @@ def train_random_forest(df: pd.DataFrame, model_path: Path) -> RandomForestClass
     clf = RandomForestClassifier(n_estimators=100, random_state=42)
     clf.fit(X.iloc[:split], y.iloc[:split])
     pickle.dump(clf, open(model_path, 'wb'))
-    logging.info("Model saved to %s", model_path)
+    logger = logging.getLogger(__name__)
+    logger.info("Model saved to %s", model_path)
     return clf
 
 
@@ -55,7 +58,8 @@ def hyperopt_random_forest(df: pd.DataFrame, model_path: Path) -> RandomForestCl
     search.fit(X, y)
     best = search.best_estimator_
     pickle.dump(best, open(model_path, 'wb'))
-    logging.info("Best model saved to %s", model_path)
+    logger = logging.getLogger(__name__)
+    logger.info("Best model saved to %s", model_path)
     return best
 
 
@@ -68,7 +72,8 @@ def backtest_model(df: pd.DataFrame, model: RandomForestClassifier) -> float:
 
     bt = Backtester(df, strategy)
     equity = bt.run()
-    logging.info("Backtest finished with equity %.2f", equity)
+    logger = logging.getLogger(__name__)
+    logger.info("Backtest finished with equity %.2f", equity)
     return equity
 
 
@@ -78,7 +83,8 @@ def run_live_trading(symbol: str, price: float, model: RandomForestClassifier, l
     if pred == 1:
         trader = LiveTrader(symbol, account_size=1000)
         trader.open_trade(price, direction='long')
-        logging.info("Live trade opened at price %.2f", price)
+        logger = logging.getLogger(__name__)
+        logger.info("Live trade opened at price %.2f", price)
 
 
 def main():
@@ -89,9 +95,9 @@ def main():
     args = parser.parse_args()
 
     config = load_config()
-    setup_logging(config)
+    logger = setup_logging(config, __name__)
 
-    logging.info("Starting data download")
+    logger.info("Starting data download")
     bot.download_and_store_all()
 
     db_path = config.get('database_path', 'binance_1m.db')
@@ -110,10 +116,22 @@ def main():
     if args.live:
         run_live_trading(symbol, float(df.iloc[-1]['close']), model, df.iloc[-1])
 
-    report = f"Symbol: {symbol}\nFinal equity: {equity:.2f}\nModel: {model_path}\n"
-    with open(args.report, 'w') as fh:
-        fh.write(report)
-    logging.info("Report written to %s", args.report)
+    summary = {
+        "symbol": symbol,
+        "final_equity": round(equity, 2),
+        "model": str(model_path),
+    }
+    with open(args.report, "w", newline="") as fh:
+        if args.report.endswith(".json"):
+            json.dump(summary, fh)
+        elif args.report.endswith(".csv"):
+            writer = csv.DictWriter(fh, fieldnames=summary.keys())
+            writer.writeheader()
+            writer.writerow(summary)
+        else:
+            for k, v in summary.items():
+                fh.write(f"{k}: {v}\n")
+    logger.info("Report written to %s", args.report)
 
 
 if __name__ == '__main__':

@@ -11,6 +11,14 @@ interval: '1m'
 log_level: INFO
 # Path to the log file
 log_file: bot.log
+# Enable rotating file handler
+log_rotation: false
+# Max size in bytes before rotation
+log_max_bytes: 1048576
+# Number of backup files to keep
+log_backup_count: 3
+# Log format: 'text' or 'json'
+log_format: text
 # Retry configuration for Binance API requests
 # How many times to retry a failed request
 retry_attempts: 3
