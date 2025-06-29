@@ -10,6 +10,13 @@ Install Python dependencies using the provided requirements file:
 pip install -r requirements.txt
 ```
 
+To run the unit tests, also install the development requirements and execute `pytest`:
+
+```bash
+pip install -r requirements-dev.txt
+pytest -q
+```
+
 ## Usage
 
 Run the script from the project directory:
