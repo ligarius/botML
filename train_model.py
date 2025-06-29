@@ -16,8 +16,15 @@ SYMBOL = (CONFIG.get('symbols') or ['BTCUSDT'])[0]
 # 1. Cargar datos históricos
 conn = sqlite3.connect(DB_PATH)
 table = f"_{SYMBOL}"
-df = pd.read_sql(f'SELECT * FROM {table}', conn)
-conn.close()
+try:
+    df = pd.read_sql(f'SELECT * FROM {table}', conn)
+except Exception as exc:
+    raise SystemExit(
+        f"Table {table} not found in {DB_PATH}. "
+        "Run bot.py with this symbol configured first."
+    ) from exc
+finally:
+    conn.close()
 
 # 2. Procesar features
 df['return_5'] = df['close'].pct_change(5)

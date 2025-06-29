@@ -29,6 +29,9 @@ Each trading pair is saved in its own table prefixed with an underscore (for exa
 
 The training script `train_model.py` also reads the database path and target symbol from the same configuration file.
 
+To train a model on a specific pair, include that pair in the `symbols` list
+before running `bot.py` so the corresponding table exists.
+
 To inspect the stored data you can query the database:
 
 ```bash
