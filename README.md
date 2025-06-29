@@ -29,8 +29,11 @@ Each trading pair is saved in its own table prefixed with an underscore (for exa
 
 The training script `train_model.py` also reads the database path and target symbol from the same configuration file.
 
-To train a model on a specific pair, include that pair in the `symbols` list
-before running `bot.py` so the corresponding table exists.
+`train_model.py` uses the first entry in `symbols` as its target. If the list is
+empty it defaults to `BTCUSDT`, which isn't downloaded when running
+`bot.py` with the default symbol selection (stablecoin pairs are filtered out).
+Therefore, to train on `BTCUSDT` or any other pair, include it in the
+`symbols` list before running `bot.py` so the corresponding table exists.
 
 ```bash
 sqlite3 binance_1m.db "SELECT * FROM _BTCUSDT LIMIT 1;"
