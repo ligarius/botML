@@ -31,6 +31,8 @@ api_secret: ""
 equity_curve_file: equity_curve.csv
 # File containing currently open trades from LiveTrader
 open_trades_file: open_trades.json
+# Commission per trade side (e.g. 0.001 = 0.1%)
+commission_pct: 0.001
 
 alerts:
   method: email          # 'email' or 'webhook'

@@ -63,14 +63,14 @@ def hyperopt_random_forest(df: pd.DataFrame, model_path: Path) -> RandomForestCl
     return best
 
 
-def backtest_model(df: pd.DataFrame, model: RandomForestClassifier) -> float:
+def backtest_model(df: pd.DataFrame, model: RandomForestClassifier, commission_pct: float = 0.0) -> float:
     feat_cols = [c for c in df.columns if c not in {'label', 'open_time'}]
 
     def strategy(row):
         pred = model.predict(row[feat_cols].to_frame().T)[0]
         return 'long' if pred == 1 else None
 
-    bt = Backtester(df, strategy)
+    bt = Backtester(df, strategy, commission_pct=commission_pct)
     equity = bt.run()
     logger = logging.getLogger(__name__)
     logger.info("Backtest finished with equity %.2f", equity)
@@ -111,7 +111,8 @@ def main():
     else:
         model = train_random_forest(df, model_path)
 
-    equity = backtest_model(df, model)
+    commission_pct = float(config.get('commission_pct', 0.0))
+    equity = backtest_model(df, model, commission_pct=commission_pct)
 
     if args.live:
         run_live_trading(symbol, float(df.iloc[-1]['close']), model, df.iloc[-1])

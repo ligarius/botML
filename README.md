@@ -71,6 +71,7 @@ Important fields include:
 - `symbols` – trading pairs to fetch, empty to auto‑select the top symbols.
 - `api_key`/`api_secret` – required for live trading.
 - `equity_curve_file` and `open_trades_file` – files the dashboard reads.
+- `commission_pct` – percentage fee applied on each trade side during backtests.
 - Logging options such as `log_file`, `log_rotation` and `log_format`.
 - `retry_attempts` and `retry_backoff` for network retries.
 
@@ -160,7 +161,12 @@ trades using historical data and the shared risk utilities.
 
 ```python
 from backtest import Backtester
-backtester = Backtester(df, my_signal_function, account_size=1000)
+backtester = Backtester(
+    df,
+    my_signal_function,
+    account_size=1000,
+    commission_pct=0.001,  # 0.1% per side like Binance
+)
 equity = backtester.run()
 ```
 
