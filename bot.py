@@ -3,6 +3,8 @@ import pandas as pd
 import sqlite3
 import time
 import logging
+from pathlib import Path
+import yaml
 
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s %(levelname)s: %(message)s')
 
@@ -11,7 +13,15 @@ class BinanceAPIError(Exception):
     """Custom exception for Binance API errors."""
     pass
 
-BINANCE_API = 'https://api.binance.com'
+# Load configuration from config.yaml located next to this script
+with open(Path(__file__).resolve().parent / 'config.yaml', 'r') as fh:
+    CONFIG = yaml.safe_load(fh)
+
+BINANCE_API = CONFIG.get('api_url', 'https://api.binance.com')
+DB_PATH = CONFIG.get('database_path', 'binance_1m.db')
+SYMBOLS_OVERRIDE = CONFIG.get('symbols') or []
+HISTORY_DAYS = CONFIG.get('history_days', 7)
+INTERVAL = CONFIG.get('interval', '1m')
 
 # Reuse a single session for all requests
 session = requests.Session()
@@ -106,11 +116,11 @@ def initialize_table(conn, symbol):
     conn.commit()
 
 def download_and_store_all():
-    symbols = get_top_30_symbols()
-    conn = sqlite3.connect('binance_1m.db')
+    symbols = SYMBOLS_OVERRIDE or get_top_30_symbols()
+    conn = sqlite3.connect(DB_PATH)
 
-    # Start seven days ago
-    start_ts = int((time.time() - 7 * 24 * 60 * 60) * 1000)
+    # Start HISTORY_DAYS days ago
+    start_ts = int((time.time() - HISTORY_DAYS * 24 * 60 * 60) * 1000)
     now_ms = int(time.time() * 1000)
 
     for symbol in symbols:
@@ -124,7 +134,7 @@ def download_and_store_all():
             if end_ts > now_ms:
                 end_ts = now_ms
 
-            klines = fetch_klines(symbol, '1m', 1000, start_time=since, end_time=end_ts)
+            klines = fetch_klines(symbol, INTERVAL, 1000, start_time=since, end_time=end_ts)
             if not klines:
                 break
 
