@@ -41,3 +41,83 @@ Example output will resemble:
 2024-01-01 00:00:00|43000|43200|42900|43100|12.345|...
 ```
 
+
+## Data collection (`bot.py`)
+
+The `bot.py` script downloads historical kline data from the Binance REST API
+and stores it in the SQLite database defined in `config.yaml`. By default it
+pulls the last seven days of 1‑minute data for the top 30 trading pairs and
+saves each symbol in its own table prefixed with an underscore.
+
+Run with the default configuration:
+
+```bash
+python bot.py
+```
+
+Edit `config.yaml` to customise the behaviour. For instance:
+
+```yaml
+database_path: data/binance.db
+symbols: ["BTCUSDT", "ETHUSDT"]
+history_days: 30
+log_level: DEBUG
+```
+
+## Feature engineering (`features.py`)
+
+`features.add_features` enriches a DataFrame with common technical indicators
+such as returns, moving averages, local volatility and RSI.
+
+```python
+import sqlite3
+import pandas as pd
+from features import add_features
+
+conn = sqlite3.connect('binance_1m.db')
+df = pd.read_sql('SELECT * FROM _BTCUSDT', conn)
+df = add_features(df)
+```
+
+## Label creation (`labeling.py`)
+
+Create supervised labels with `labeling.create_labels`. A row is marked `1`
+when the future return over a chosen horizon exceeds the threshold.
+
+```python
+from labeling import create_labels
+df = create_labels(df, horizon=5, threshold=0.002)
+```
+
+## Model training (`train_model.py`)
+
+`train_model.py` reads the configured database and symbol, generates a few
+features and labels and fits a `RandomForestClassifier`.
+
+```bash
+python train_model.py
+```
+
+The trained model is saved to `rf_btcusdt.pkl`.
+
+## Backtesting
+
+The optional `backtest.py` module provides a `Backtester` class to simulate
+trades using historical data and the shared risk utilities.
+
+```python
+from backtest import Backtester
+backtester = Backtester(df, my_signal_function, account_size=1000)
+equity = backtester.run()
+```
+
+## Live trading
+
+`live_trading.py` exposes a `LiveTrader` that sends orders to Binance. Set your
+`api_key` and `api_secret` in `config.yaml` and create trades programmatically:
+
+```python
+from live_trading import LiveTrader
+trader = LiveTrader('BTCUSDT', account_size=1000)
+trader.open_trade(price=30000, direction='long')
+```
