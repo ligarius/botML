@@ -4,7 +4,7 @@ A simple bot that downloads 1‑minute candlestick data for the top 30 symbols o
 
 ## Requirements
 
-Install Python dependencies using the provided requirements file:
+Install the runtime dependencies using the provided requirements file:
 
 ```bash
 pip install -r requirements.txt
@@ -13,7 +13,7 @@ pip install -r requirements.txt
 To run the unit tests, also install the development requirements and execute `pytest`:
 
 ```bash
-pip install -r requirements-dev.txt
+pip install -r requirements-dev.txt  # adds pytest and helpers
 pytest -q
 ```
 
@@ -61,6 +61,21 @@ Example output will resemble:
 ```
 2024-01-01 00:00:00|43000|43200|42900|43100|12.345|...
 ```
+
+## Configuration
+
+All scripts read settings from `config.yaml` located in the project root.
+Important fields include:
+
+- `database_path` – SQLite file used for downloaded data.
+- `symbols` – trading pairs to fetch, empty to auto‑select the top symbols.
+- `api_key`/`api_secret` – required for live trading.
+- `equity_curve_file` and `open_trades_file` – files the dashboard reads.
+- Logging options such as `log_file`, `log_rotation` and `log_format`.
+- `retry_attempts` and `retry_backoff` for network retries.
+
+Most values have sensible defaults so you only need to set credentials when
+using live trading.
 
 
 ## Data collection (`bot.py`)
@@ -149,6 +164,21 @@ backtester = Backtester(df, my_signal_function, account_size=1000)
 equity = backtester.run()
 ```
 
+## Orchestrator
+
+The `orchestrator.py` script automates the full workflow—data download,
+feature generation, model training, backtesting and optionally live
+trading. Run it with optional flags:
+
+```bash
+python orchestrator.py --hyperopt --live --report results.json
+```
+
+* `--hyperopt` performs grid search before training.
+* `--live` executes a trade using the last candle after the backtest.
+* `--report` writes a summary to the given path (format inferred from the
+  extension).
+
 ## Live trading
 
 `live_trading.py` exposes a `LiveTrader` that sends orders to Binance. Set your
@@ -156,9 +186,20 @@ equity = backtester.run()
 
 ```python
 from live_trading import LiveTrader
-trader = LiveTrader('BTCUSDT', account_size=1000)
+from botml.risk import PositionSizer, RiskManager
+
+trader = LiveTrader(
+    'BTCUSDT',
+    account_size=1000,
+    sizer=PositionSizer(1000, risk_per_trade=0.02),
+    risk_manager=RiskManager(1000, max_drawdown_pct=0.1),
+)
 trader.open_trade(price=30000, direction='long', bracket=True)
 ```
+
+Calling ``open_trade`` with ``bracket=True`` places stop-loss and
+take-profit orders using the configured ``RiskManager``. Trade size is
+computed automatically from the ``PositionSizer`` and ``account_size``.
 
 ## Dashboard
 
@@ -168,8 +209,9 @@ View equity curves, open trades and recent log messages with Streamlit:
 streamlit run dashboard.py
 ```
 
-The dashboard reads the files defined in `config.yaml` (`equity_curve_file`,
-`open_trades_file` and `log_file`).
+Then open the displayed URL in your browser (usually
+`http://localhost:8501`). The dashboard reads the files defined in
+`config.yaml` (`equity_curve_file`, `open_trades_file` and `log_file`).
 
 ### Alert configuration
 
