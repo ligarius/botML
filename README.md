@@ -100,6 +100,16 @@ python train_model.py
 
 The trained model is saved to `rf_btcusdt.pkl`.
 
+## Hyperparameter optimization (`hyperoptimize.py`)
+
+`hyperoptimize.py` performs a small grid search using `sklearn.model_selection.GridSearchCV`.
+It reads the same database and symbol as `train_model.py` and reports the best
+parameters before saving the optimized model to `rf_best.pkl`.
+
+```bash
+python hyperoptimize.py
+```
+
 ## Backtesting
 
 The optional `backtest.py` module provides a `Backtester` class to simulate
