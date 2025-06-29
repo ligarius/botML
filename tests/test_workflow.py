@@ -22,7 +22,7 @@ def logistic_predict(X, w):
 def make_df(n=60):
     base = np.linspace(100, 101, n)
     data = {
-        "open_time": pd.date_range("2024-01-01", periods=n, freq="T"),
+        "open_time": pd.date_range("2024-01-01", periods=n, freq="min"),
         "open": base,
         "high": base + 1,
         "low": base - 1,
