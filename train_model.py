@@ -3,10 +3,20 @@ import pandas as pd
 import sqlite3
 from sklearn.ensemble import RandomForestClassifier
 import pickle
+from pathlib import Path
+import yaml
+
+# Load configuration
+with open(Path(__file__).resolve().parent / 'config.yaml', 'r') as fh:
+    CONFIG = yaml.safe_load(fh)
+
+DB_PATH = CONFIG.get('database_path', 'binance_1m.db')
+SYMBOL = (CONFIG.get('symbols') or ['BTCUSDT'])[0]
 
 # 1. Cargar datos históricos
-conn = sqlite3.connect('binance_1m.db')
-df = pd.read_sql('SELECT * FROM _BTCUSDT', conn)
+conn = sqlite3.connect(DB_PATH)
+table = f"_{SYMBOL}"
+df = pd.read_sql(f'SELECT * FROM {table}', conn)
 conn.close()
 
 # 2. Procesar features

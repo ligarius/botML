@@ -1,0 +1,9 @@
+api_url: https://api.binance.com
+# Path to the SQLite database used by bot.py and train_model.py
+database_path: binance_1m.db
+# Explicit symbols to download. Leave empty to fetch top 30
+symbols: []
+# How many days of historical data to download
+history_days: 7
+# Kline interval
+interval: '1m'
