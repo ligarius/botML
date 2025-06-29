@@ -30,6 +30,9 @@ def get_top_30_symbols():
     except requests.exceptions.RequestException as exc:
         logging.error("Error requesting tickers: %s", exc)
         return []
+    except ValueError as exc:
+        logging.error("Invalid JSON in ticker response: %s", exc)
+        return []
 
     sorted_tickers = sorted(
         [x for x in r if not x['symbol'].endswith('BUSD') and not x['symbol'].endswith('USDT')],
@@ -59,6 +62,9 @@ def fetch_klines(symbol, interval='1m', limit=1000, start_time=None, end_time=No
         data = response.json()
     except requests.exceptions.RequestException as exc:
         logging.error("Network error while fetching klines for %s: %s", symbol, exc)
+        raise BinanceAPIError(str(exc))
+    except ValueError as exc:
+        logging.error("Invalid JSON in klines response for %s: %s", symbol, exc)
         raise BinanceAPIError(str(exc))
 
     return data
