@@ -143,3 +143,17 @@ from live_trading import LiveTrader
 trader = LiveTrader('BTCUSDT', account_size=1000)
 trader.open_trade(price=30000, direction='long')
 ```
+
+## Orchestrator
+
+`orchestrator.py` combines the main pieces of the project. It downloads data,
+builds features and labels, trains a model and runs a backtest. Use the
+`--hyperopt` flag to perform a small hyperparameter search and `--live` to open a
+trade using `LiveTrader` if the final prediction is positive.
+
+```bash
+python orchestrator.py --hyperopt --live --report results.txt
+```
+
+The generated report summarizes the symbol, final equity from the backtest and
+the model path used.
