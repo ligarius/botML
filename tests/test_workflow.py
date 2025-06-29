@@ -5,17 +5,22 @@ from botml.features import add_features
 from botml.labeling import create_labels
 
 
+def _sigmoid(z):
+    z = np.clip(z, -50, 50)
+    return 1.0 / (1.0 + np.exp(-z))
+
+
 def logistic_train(X, y, lr=0.1, epochs=200):
     w = np.zeros(X.shape[1])
     for _ in range(epochs):
-        preds = 1.0 / (1.0 + np.exp(-X.dot(w)))
+        preds = _sigmoid(X.dot(w))
         gradient = X.T.dot(preds - y) / len(y)
         w -= lr * gradient
     return w
 
 
 def logistic_predict(X, w):
-    preds = 1.0 / (1.0 + np.exp(-X.dot(w)))
+    preds = _sigmoid(X.dot(w))
     return (preds >= 0.5).astype(int)
 
 
