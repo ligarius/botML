@@ -54,5 +54,7 @@ preds = clf.predict(test[features])
 # ... calcula métricas de trading y precisión
 
 # 7. Guardar modelo
-with open('rf_btcusdt.pkl', 'wb') as f:
+model_path = f"rf_{SYMBOL.lower()}.pkl"
+with open(model_path, "wb") as f:
     pickle.dump(clf, f)
+print(f"Model saved to {model_path}")
