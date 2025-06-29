@@ -19,9 +19,14 @@ table = f"_{SYMBOL}"
 try:
     df = pd.read_sql(f'SELECT * FROM {table}', conn)
 except Exception as exc:
+    tables = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table'"
+    ).fetchall()
+    existing = ", ".join(t[0] for t in tables)
     raise SystemExit(
-        f"Table {table} not found in {DB_PATH}. "
-        "Run bot.py with this symbol configured first."
+        f"Table {table} not found in {DB_PATH}.\n"
+        "Run bot.py with this symbol configured first.\n"
+        f"Existing tables: {existing if existing else 'none'}"
     ) from exc
 finally:
     conn.close()
