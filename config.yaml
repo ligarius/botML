@@ -11,3 +11,6 @@ interval: '1m'
 log_level: INFO
 # Path to the log file
 log_file: bot.log
+# API credentials for live trading
+api_key: ""
+api_secret: ""
