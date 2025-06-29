@@ -1,7 +1,7 @@
 import os, sys; sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 import pandas as pd
 import numpy as np
-from features import add_features
+from botml.features import add_features
 
 
 def sample_df(n=50):
