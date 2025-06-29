@@ -147,6 +147,3 @@ from live_trading import LiveTrader
 trader = LiveTrader('BTCUSDT', account_size=1000)
 trader.open_trade(price=30000, direction='long', bracket=True)
 ```
-Passing `bracket=True` automatically submits stop-loss and take-profit orders
-using the configured percentages.
-Call `trader.reconnect()` or `trader.resume()` to recover from API errors.
