@@ -110,7 +110,7 @@ features and labels and fits a `RandomForestClassifier`.
 python train_model.py
 ```
 
-The trained model is saved to `rf_btcusdt.pkl`.
+The trained model is saved to `rf_<symbol>.pkl` (en minúsculas).
 
 ## Hyperparameter optimization (`hyperoptimize.py`)
 
