@@ -19,3 +19,17 @@ retry_backoff: 1.0
 # API credentials for live trading
 api_key: ""
 api_secret: ""
+# File containing the equity curve saved by Backtester
+equity_curve_file: equity_curve.csv
+# File containing currently open trades from LiveTrader
+open_trades_file: open_trades.json
+
+alerts:
+  method: email          # 'email' or 'webhook'
+  alert_threshold_pct: 0.1
+  smtp_server: smtp.example.com
+  smtp_port: 587
+  smtp_user: ""
+  smtp_password: ""
+  email_to: ""
+  webhook_url: ""
