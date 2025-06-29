@@ -7,7 +7,7 @@ from botml.features import add_features
 def sample_df(n=50):
     base = np.arange(n, dtype=float) + 100
     data = {
-        "open_time": pd.date_range("2024-01-01", periods=n, freq="T"),
+        "open_time": pd.date_range("2024-01-01", periods=n, freq="min"),
         "open": base,
         "high": base + 1,
         "low": base - 1,
