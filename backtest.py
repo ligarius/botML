@@ -30,13 +30,16 @@ class Backtester:
     def __init__(self, data: pd.DataFrame, strategy: Callable[[pd.Series], Optional[str]],
                  account_size: float = 1000.0,
                  risk_manager: Optional[RiskManager] = None,
-                 sizer: Optional[PositionSizer] = None):
+                 sizer: Optional[PositionSizer] = None,
+                 equity_curve_file: Optional[str] = None):
         self.data = data.reset_index(drop=True)
         self.strategy = strategy
         self.account_size = account_size
         self.risk_manager = risk_manager or RiskManager(account_size)
         self.sizer = sizer or PositionSizer(account_size)
         self.equity = account_size
+        self.equity_curve = [account_size]
+        self.equity_curve_file = equity_curve_file or CONFIG.get('equity_curve_file', 'equity_curve.csv')
         self.trades: List[Trade] = []
         self.open_trade: Optional[Trade] = None
 
@@ -51,6 +54,7 @@ class Backtester:
         else:
             pnl = (trade.entry_price - price) * trade.size
         self.equity += pnl
+        self.equity_curve.append(self.equity)
         self.open_trade = None
 
     def run(self) -> float:
@@ -84,7 +88,12 @@ class Backtester:
                 self.open_trade = Trade(i, price, signal, size, stop, take_profit)
                 self.trades.append(self.open_trade)
 
+            self.equity_curve.append(self.equity)
+
         if self.open_trade:
             # Close any remaining open trade at final price
             self._close_trade(len(self.data) - 1, float(self.data.iloc[-1]['close']))
+
+        import pandas as pd
+        pd.DataFrame({'equity': self.equity_curve}).to_csv(self.equity_curve_file, index=False)
         return self.equity

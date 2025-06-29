@@ -147,3 +147,20 @@ from live_trading import LiveTrader
 trader = LiveTrader('BTCUSDT', account_size=1000)
 trader.open_trade(price=30000, direction='long', bracket=True)
 ```
+
+## Dashboard
+
+View equity curves, open trades and recent log messages with Streamlit:
+
+```bash
+streamlit run dashboard.py
+```
+
+The dashboard reads the files defined in `config.yaml` (`equity_curve_file`,
+`open_trades_file` and `log_file`).
+
+### Alert configuration
+
+Edit the `alerts` section in `config.yaml` to enable email or webhook
+notifications when the drawdown exceeds `alert_threshold_pct`.
+Provide SMTP or webhook credentials as needed.

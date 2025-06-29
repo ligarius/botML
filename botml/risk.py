@@ -2,6 +2,11 @@
 
 from dataclasses import dataclass
 
+from .alerts import send_alert
+from .utils import load_config
+
+CONFIG = load_config()
+
 @dataclass
 class PositionSizer:
     account_size: float
@@ -22,6 +27,7 @@ class RiskManager:
     max_drawdown_pct: float = 0.2
     stop_loss_pct: float = 0.01
     take_profit_pct: float = 0.02
+    alert_threshold_pct: float = 0.1
 
     def __post_init__(self):
         self.high_water_mark = self.account_size
@@ -30,6 +36,8 @@ class RiskManager:
         """Update equity and return True if trading is allowed."""
         self.high_water_mark = max(self.high_water_mark, equity)
         drawdown = (self.high_water_mark - equity) / self.high_water_mark
+        if drawdown >= self.alert_threshold_pct:
+            send_alert(f"Drawdown alert: {drawdown:.2%}", CONFIG.get('alerts', {}))
         return drawdown <= self.max_drawdown_pct
 
     def stop_loss_price(self, entry_price: float, direction: str = "long") -> float:

@@ -84,13 +84,15 @@ class LiveTrader:
     def __init__(self, symbol: str, account_size: float,
                  client: Optional[BinanceClient] = None,
                  risk_manager: Optional[RiskManager] = None,
-                 sizer: Optional[PositionSizer] = None):
+                 sizer: Optional[PositionSizer] = None,
+                 open_trades_file: Optional[str] = None):
         self.symbol = symbol
         self.account_size = account_size
         self.client = client or BinanceClient(API_KEY, API_SECRET)
         self.sizer = sizer or PositionSizer(account_size)
         self.risk_manager = risk_manager or RiskManager(account_size)
         self.open_trades = []
+        self.open_trades_file = open_trades_file or CONFIG.get('open_trades_file', 'open_trades.json')
 
     def reconnect(self) -> None:
         """Reconnect the Binance client."""
@@ -108,6 +110,12 @@ class LiveTrader:
         self.client.create_order(symbol=self.symbol, side=side, type='MARKET', quantity=size)
         trade = Trade(price, direction, size, stop, take_profit)
         self.open_trades.append(trade)
+        try:
+            import json
+            with open(self.open_trades_file, 'w') as fh:
+                json.dump([t.__dict__ for t in self.open_trades], fh)
+        except Exception:
+            pass
         if bracket:
             opposite = 'SELL' if direction == 'long' else 'BUY'
             try:
