@@ -32,10 +32,19 @@ The training script `train_model.py` also reads the database path and target sym
 To train a model on a specific pair, include that pair in the `symbols` list
 before running `bot.py` so the corresponding table exists.
 
-To inspect the stored data you can query the database:
+To inspect the stored data you can query the database. If the `sqlite3` command
+is available you can run:
 
 ```bash
 sqlite3 binance_1m.db "SELECT * FROM _BTCUSDT LIMIT 1;"
+```
+
+If the command isn't installed, use Python instead:
+
+```bash
+python -c "import sqlite3, pandas as pd;\
+conn = sqlite3.connect('binance_1m.db');\
+print(pd.read_sql('SELECT * FROM _BTCUSDT LIMIT 1', conn))"
 ```
 
 Example output will resemble:
