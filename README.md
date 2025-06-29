@@ -22,7 +22,9 @@ The behaviour of the bot can be tweaked via `config.yaml`. This file contains
 settings such as the Binance API URL, the SQLite database path and the symbols
 to download. If no symbols are listed in the configuration the script will
 fetch the top 30 by volume. You can also adjust the log level and set the log
-file location used by the built‑in logging system (defaults to `bot.log`).
+file location used by the built‑in logging system (defaults to `bot.log`). The
+`retry_attempts` and `retry_backoff` settings control how API requests are
+retried when temporary errors occur.
 
 During execution the bot logs progress for each symbol and creates `binance_1m.db`.
 Each trading pair is saved in its own table prefixed with an underscore (for example, `_BTCUSDT`).
@@ -74,6 +76,8 @@ database_path: data/binance.db
 symbols: ["BTCUSDT", "ETHUSDT"]
 history_days: 30
 log_level: DEBUG
+retry_attempts: 5
+retry_backoff: 2.0
 ```
 
 ## Feature engineering (`features.py`)
@@ -141,19 +145,5 @@ equity = backtester.run()
 ```python
 from live_trading import LiveTrader
 trader = LiveTrader('BTCUSDT', account_size=1000)
-trader.open_trade(price=30000, direction='long')
+trader.open_trade(price=30000, direction='long', bracket=True)
 ```
-
-## Orchestrator
-
-`orchestrator.py` combines the main pieces of the project. It downloads data,
-builds features and labels, trains a model and runs a backtest. Use the
-`--hyperopt` flag to perform a small hyperparameter search and `--live` to open a
-trade using `LiveTrader` if the final prediction is positive.
-
-```bash
-python orchestrator.py --hyperopt --live --report results.txt
-```
-
-The generated report summarizes the symbol, final equity from the backtest and
-the model path used.

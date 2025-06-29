@@ -11,6 +11,11 @@ interval: '1m'
 log_level: INFO
 # Path to the log file
 log_file: bot.log
+# Retry configuration for Binance API requests
+# How many times to retry a failed request
+retry_attempts: 3
+# Base delay in seconds between retries (exponential backoff)
+retry_backoff: 1.0
 # API credentials for live trading
 api_key: ""
 api_secret: ""
