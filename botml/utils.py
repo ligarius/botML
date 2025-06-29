@@ -4,8 +4,9 @@ import yaml
 
 
 def load_config():
-    """Load configuration from config.yaml located next to this file."""
-    with open(Path(__file__).resolve().parent / 'config.yaml', 'r') as fh:
+    """Load configuration from config.yaml located at the project root."""
+    config_path = Path(__file__).resolve().parents[1] / 'config.yaml'
+    with open(config_path, 'r') as fh:
         return yaml.safe_load(fh)
 
 

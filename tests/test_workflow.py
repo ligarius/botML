@@ -1,8 +1,8 @@
 import os, sys; sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 import pandas as pd
 import numpy as np
-from features import add_features
-from labeling import create_labels
+from botml.features import add_features
+from botml.labeling import create_labels
 
 
 def logistic_train(X, y, lr=0.1, epochs=200):

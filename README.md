@@ -72,7 +72,7 @@ such as returns, moving averages, local volatility and RSI.
 ```python
 import sqlite3
 import pandas as pd
-from features import add_features
+from botml.features import add_features
 
 conn = sqlite3.connect('binance_1m.db')
 df = pd.read_sql('SELECT * FROM _BTCUSDT', conn)
@@ -85,7 +85,7 @@ Create supervised labels with `labeling.create_labels`. A row is marked `1`
 when the future return over a chosen horizon exceeds the threshold.
 
 ```python
-from labeling import create_labels
+from botml.labeling import create_labels
 df = create_labels(df, horizon=5, threshold=0.002)
 ```
 

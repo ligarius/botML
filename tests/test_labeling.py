@@ -1,6 +1,6 @@
 import os, sys; sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 import pandas as pd
-from labeling import create_labels
+from botml.labeling import create_labels
 
 
 def test_create_labels_binary():

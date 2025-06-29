@@ -9,8 +9,8 @@ from urllib.parse import urlencode
 
 import requests
 
-from risk import PositionSizer, RiskManager
-from utils import load_config, setup_logging
+from botml.risk import PositionSizer, RiskManager
+from botml.utils import load_config, setup_logging
 
 CONFIG = load_config()
 setup_logging(CONFIG)
