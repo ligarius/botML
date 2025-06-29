@@ -6,16 +6,26 @@ import logging
 from pathlib import Path
 import yaml
 
-logging.basicConfig(level=logging.ERROR, format='%(asctime)s %(levelname)s: %(message)s')
+# Load configuration from config.yaml located next to this script
+with open(Path(__file__).resolve().parent / 'config.yaml', 'r') as fh:
+    CONFIG = yaml.safe_load(fh)
+
+# Configure logging to both console and file
+level_name = CONFIG.get('log_level', 'INFO').upper()
+log_file = CONFIG.get('log_file', 'bot.log')
+logging.basicConfig(
+    level=getattr(logging, level_name, logging.INFO),
+    format='%(asctime)s %(levelname)s: %(message)s',
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler(log_file, encoding='utf-8')
+    ]
+)
 
 
 class BinanceAPIError(Exception):
     """Custom exception for Binance API errors."""
     pass
-
-# Load configuration from config.yaml located next to this script
-with open(Path(__file__).resolve().parent / 'config.yaml', 'r') as fh:
-    CONFIG = yaml.safe_load(fh)
 
 BINANCE_API = CONFIG.get('api_url', 'https://api.binance.com')
 DB_PATH = CONFIG.get('database_path', 'binance_1m.db')
@@ -124,7 +134,7 @@ def download_and_store_all():
     now_ms = int(time.time() * 1000)
 
     for symbol in symbols:
-        print(f"Descargando {symbol}...")
+        logging.info("Downloading %s...", symbol)
         initialize_table(conn, symbol)
         since = start_ts
 

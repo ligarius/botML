@@ -21,9 +21,10 @@ python bot.py
 The behaviour of the bot can be tweaked via `config.yaml`. This file contains
 settings such as the Binance API URL, the SQLite database path and the symbols
 to download. If no symbols are listed in the configuration the script will
-fetch the top 30 by volume.
+fetch the top 30 by volume. You can also adjust the log level and set the log
+file location used by the built‑in logging system (defaults to `bot.log`).
 
-During execution the bot prints progress for each symbol and creates `binance_1m.db`.
+During execution the bot logs progress for each symbol and creates `binance_1m.db`.
 Each trading pair is saved in its own table prefixed with an underscore (for example, `_BTCUSDT`).
 
 The training script `train_model.py` also reads the database path and target symbol from the same configuration file.
