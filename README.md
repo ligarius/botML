@@ -230,3 +230,7 @@ Then open the displayed URL in your browser (usually
 Edit the `alerts` section in `config.yaml` to enable email or webhook
 notifications when the drawdown exceeds `alert_threshold_pct`.
 Provide SMTP or webhook credentials as needed.
+
+## Disclaimer
+
+This project is for educational purposes only and does not constitute financial advice. Trading cryptocurrencies or any financial instrument carries significant risk, including the potential loss of all capital. Use the code and information in this repository at your own discretion.
