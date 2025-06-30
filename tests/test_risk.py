@@ -65,3 +65,22 @@ def test_open_trade_below_min_notional(tmp_path, caplog):
     assert trade is None
     assert client.orders == []
     assert "below minimum" in caplog.text
+
+
+def test_trades_persist_across_instances(tmp_path):
+    client = MockClient()
+    open_file = tmp_path / "trades.json"
+    trader1 = LiveTrader("BTCUSDT", 10000, client=client, open_trades_file=str(open_file))
+    trade = trader1.open_trade(100, direction="long")
+
+    # New trader should load the existing trade from disk
+    trader2 = LiveTrader("BTCUSDT", 10000, client=client, open_trades_file=str(open_file))
+    assert len(trader2.open_trades) == 1
+    assert trader2.open_trades[0].entry_price == trade.entry_price
+
+    # Opening the same trade again should not create duplicates
+    trader2.open_trade(100, direction="long")
+    assert len(trader2.open_trades) == 1
+    with open(open_file) as fh:
+        data = json.load(fh)
+    assert len(data) == 1
