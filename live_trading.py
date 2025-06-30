@@ -13,9 +13,11 @@ import requests
 
 from botml.risk import PositionSizer, RiskManager
 from botml.utils import load_config, setup_logging
+from botml.alerts import send_alert
 
 CONFIG = load_config()
 LOGGER = setup_logging(CONFIG, __name__)
+ALERTS = CONFIG.get('alerts', {})
 
 BINANCE_URL = CONFIG.get('api_url', 'https://api.binance.com')
 API_KEY = CONFIG.get('api_key')
@@ -46,11 +48,16 @@ class BinanceClient:
         """Perform a request with retry logic."""
         for attempt in range(1, self.retry_attempts + 1):
             try:
+                LOGGER.debug("%s %s attempt %s", method, endpoint, attempt)
                 resp = self.session.request(method, self.base_url + endpoint, timeout=10, **kwargs)
                 resp.raise_for_status()
                 return resp
             except requests.RequestException as exc:
+                LOGGER.warning("Request error on attempt %s: %s", attempt, exc)
                 if attempt == self.retry_attempts:
+                    msg = f"API request {endpoint} failed: {exc}"
+                    LOGGER.error(msg)
+                    send_alert(msg, ALERTS)
                     raise
                 time.sleep(self.retry_backoff * attempt)
                 self.reconnect()
@@ -64,18 +71,28 @@ class BinanceClient:
     def create_order(self, **params):
         params.setdefault('timestamp', int(time.time() * 1000))
         signed = self._sign_params(params)
+        LOGGER.info("Submitting order: %s", signed)
         try:
             response = self._request('post', '/api/v3/order', params=signed)
         except requests.RequestException as exc:
-            raise RuntimeError(f"Order request failed: {exc}") from exc
-        return response.json()
+            msg = f"Order request failed: {exc}"
+            LOGGER.error(msg)
+            send_alert(msg, ALERTS)
+            raise RuntimeError(msg) from exc
+        data = response.json()
+        LOGGER.info("Order response: %s", data)
+        return data
 
     def get_symbol_min_notional(self, symbol: str) -> float:
         """Return the minimum notional value for a symbol."""
         try:
+            LOGGER.debug("Fetching exchange info for %s", symbol)
             resp = self._request('get', '/api/v3/exchangeInfo', params={'symbol': symbol})
         except requests.RequestException as exc:
-            raise RuntimeError(f"exchangeInfo request failed: {exc}") from exc
+            msg = f"exchangeInfo request failed: {exc}"
+            LOGGER.error(msg)
+            send_alert(msg, ALERTS)
+            raise RuntimeError(msg) from exc
         data = resp.json()
         try:
             filters = data['symbols'][0]['filters']
@@ -83,8 +100,14 @@ class BinanceClient:
                 if f.get('filterType') == 'MIN_NOTIONAL':
                     return float(f['minNotional'])
         except (KeyError, IndexError, ValueError) as exc:
-            raise RuntimeError(f"Invalid exchangeInfo response: {exc}") from exc
-        raise RuntimeError('MIN_NOTIONAL filter not found')
+            msg = f"Invalid exchangeInfo response: {exc}"
+            LOGGER.error(msg)
+            send_alert(msg, ALERTS)
+            raise RuntimeError(msg) from exc
+        msg = 'MIN_NOTIONAL filter not found'
+        LOGGER.error(msg)
+        send_alert(msg, ALERTS)
+        raise RuntimeError(msg)
 
 
 @dataclass
@@ -178,15 +201,28 @@ class LiveTrader:
 
         order_value = size * price
         if min_notional and order_value < min_notional:
-            LOGGER.info(
-                "Order value %.8f below minimum %.8f for %s - skipping",
-                order_value,
-                min_notional,
-                self.symbol,
+            msg = (
+                f"Order value {order_value:.8f} below minimum {min_notional:.8f} for {self.symbol}"
             )
+            LOGGER.info(msg)
+            send_alert(msg, ALERTS)
             return None
 
-        self.client.create_order(symbol=self.symbol, side=side, type='MARKET', quantity=size)
+        LOGGER.info(
+            "Submitting %s order for %s size %.8f at %.2f",
+            side,
+            self.symbol,
+            size,
+            price,
+        )
+        try:
+            self.client.create_order(symbol=self.symbol, side=side, type='MARKET', quantity=size)
+            LOGGER.info("Order submitted successfully")
+        except Exception as exc:
+            msg = f"Order submission failed: {exc}"
+            LOGGER.error(msg)
+            send_alert(msg, ALERTS)
+            return None
         trade = Trade(price, direction, size, stop, take_profit)
         if trade not in self.open_trades:
             self.open_trades.append(trade)
@@ -198,6 +234,9 @@ class LiveTrader:
         if bracket:
             opposite = 'SELL' if direction == 'long' else 'BUY'
             try:
+                LOGGER.info(
+                    "Submitting bracket stop order at %.2f for %s", stop, self.symbol
+                )
                 self.client.create_order(
                     symbol=self.symbol,
                     side=opposite,
@@ -205,9 +244,14 @@ class LiveTrader:
                     stopPrice=stop,
                     closePosition='true'
                 )
-            except Exception:
-                pass
+            except Exception as exc:
+                msg = f"Bracket stop order failed: {exc}"
+                LOGGER.error(msg)
+                send_alert(msg, ALERTS)
             try:
+                LOGGER.info(
+                    "Submitting bracket take-profit order at %.2f for %s", take_profit, self.symbol
+                )
                 self.client.create_order(
                     symbol=self.symbol,
                     side=opposite,
@@ -215,8 +259,10 @@ class LiveTrader:
                     stopPrice=take_profit,
                     closePosition='true'
                 )
-            except Exception:
-                pass
+            except Exception as exc:
+                msg = f"Bracket take-profit order failed: {exc}"
+                LOGGER.error(msg)
+                send_alert(msg, ALERTS)
         return trade
 
     def close_trade(self, trade: Trade) -> None:

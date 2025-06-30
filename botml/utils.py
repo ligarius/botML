@@ -33,32 +33,41 @@ def setup_logging(config, name: str | None = None) -> logging.Logger:
 
     logger = logging.getLogger(name)
     logger.setLevel(level)
-    logger.handlers.clear()
 
-    if log_format == "json":
-        class JsonFormatter(logging.Formatter):
-            def format(self, record: logging.LogRecord) -> str:  # type: ignore[override]
-                data = {
-                    "time": self.formatTime(record, self.datefmt),
-                    "level": record.levelname,
-                    "name": record.name,
-                    "message": record.getMessage(),
-                }
-                return json.dumps(data)
+    root_logger = logging.getLogger()
+    if not getattr(root_logger, "_botml_initialized", False):
+        root_logger.handlers.clear()
 
-        formatter = JsonFormatter()
-    else:
-        formatter = logging.Formatter("%(asctime)s %(name)s %(levelname)s: %(message)s")
+        if log_format == "json":
+            class JsonFormatter(logging.Formatter):
+                def format(self, record: logging.LogRecord) -> str:  # type: ignore[override]
+                    data = {
+                        "time": self.formatTime(record, self.datefmt),
+                        "level": record.levelname,
+                        "name": record.name,
+                        "message": record.getMessage(),
+                    }
+                    return json.dumps(data)
 
-    console = logging.StreamHandler()
-    console.setFormatter(formatter)
-    logger.addHandler(console)
+            formatter = JsonFormatter()
+        else:
+            formatter = logging.Formatter("%(asctime)s %(name)s %(levelname)s: %(message)s")
 
-    if rotate:
-        file_handler = RotatingFileHandler(log_file, maxBytes=max_bytes, backupCount=backup_count, encoding="utf-8")
-    else:
-        file_handler = logging.FileHandler(log_file, encoding="utf-8")
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
+        console = logging.StreamHandler()
+        console.setFormatter(formatter)
+        root_logger.addHandler(console)
 
+        if rotate:
+            file_handler = RotatingFileHandler(
+                log_file, maxBytes=max_bytes, backupCount=backup_count, encoding="utf-8"
+            )
+        else:
+            file_handler = logging.FileHandler(log_file, encoding="utf-8")
+        file_handler.setFormatter(formatter)
+        root_logger.addHandler(file_handler)
+
+        root_logger.setLevel(level)
+        root_logger._botml_initialized = True
+
+    logger.propagate = True
     return logger
