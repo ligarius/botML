@@ -3,9 +3,11 @@
 import time
 import hmac
 import hashlib
+import json
 from dataclasses import dataclass
 from typing import Optional
 from urllib.parse import urlencode
+from pathlib import Path
 
 import requests
 
@@ -107,8 +109,19 @@ class LiveTrader:
         self.client = client or BinanceClient(API_KEY, API_SECRET)
         self.sizer = sizer or PositionSizer(account_size)
         self.risk_manager = risk_manager or RiskManager(account_size)
-        self.open_trades = []
         self.open_trades_file = open_trades_file or CONFIG.get('open_trades_file', 'open_trades.json')
+        self.open_trades = []
+        path = Path(self.open_trades_file)
+        if path.exists():
+            try:
+                with open(path) as fh:
+                    data = json.load(fh)
+                for item in data:
+                    trade = Trade(**item)
+                    if trade not in self.open_trades:
+                        self.open_trades.append(trade)
+            except Exception:
+                LOGGER.warning("Failed to load open trades from %s", path)
 
     def reconnect(self) -> None:
         """Reconnect the Binance client."""
@@ -141,9 +154,9 @@ class LiveTrader:
 
         self.client.create_order(symbol=self.symbol, side=side, type='MARKET', quantity=size)
         trade = Trade(price, direction, size, stop, take_profit)
-        self.open_trades.append(trade)
+        if trade not in self.open_trades:
+            self.open_trades.append(trade)
         try:
-            import json
             with open(self.open_trades_file, 'w') as fh:
                 json.dump([t.__dict__ for t in self.open_trades], fh)
         except Exception:
@@ -171,6 +184,16 @@ class LiveTrader:
             except Exception:
                 pass
         return trade
+
+    def close_trade(self, trade: Trade) -> None:
+        """Remove a trade from the open list and update persistence."""
+        if trade in self.open_trades:
+            self.open_trades = [t for t in self.open_trades if t != trade]
+            try:
+                with open(self.open_trades_file, 'w') as fh:
+                    json.dump([t.__dict__ for t in self.open_trades], fh)
+            except Exception:
+                pass
 
     def update_equity(self, equity: float) -> bool:
         """Update equity and enforce max drawdown."""
