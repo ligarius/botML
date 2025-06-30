@@ -82,6 +82,16 @@ def trading_cycle(symbol: str, trader: LiveTrader) -> None:
     if df.empty:
         LOGGER.warning("No data to process for %s", symbol)
         return
+    equity_path = Path(CONFIG.get("equity_curve_file", "equity_curve.csv"))
+    if equity_path.exists():
+        try:
+            eq = pd.read_csv(equity_path)["equity"].iloc[-1]
+            trader.update_equity(float(eq))
+        except Exception:
+            LOGGER.warning("Failed to read equity from %s", equity_path)
+    if trader.paused:
+        LOGGER.info("Trading is paused - skipping signal evaluation")
+        return
     model = load_model(symbol)
     feat_cols = [c for c in df.columns if c not in {"open_time", "label"}]
     last_row = df.iloc[-1]

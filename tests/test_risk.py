@@ -84,3 +84,28 @@ def test_trades_persist_across_instances(tmp_path):
     with open(open_file) as fh:
         data = json.load(fh)
     assert len(data) == 1
+
+
+def test_update_equity_pauses_trading(tmp_path, caplog):
+    client = MockClient()
+    open_file = tmp_path / "trades.json"
+    pause_file = tmp_path / "paused.json"
+    trader = LiveTrader(
+        "BTCUSDT",
+        10000,
+        client=client,
+        open_trades_file=str(open_file),
+        paused_file=str(pause_file),
+    )
+
+    with caplog.at_level("WARNING"):
+        allowed = trader.update_equity(7500)
+
+    assert not allowed
+    assert trader.paused
+    assert "pausing" in caplog.text.lower()
+    trader.open_trade(100, direction="long")
+    assert client.orders == []
+    with open(pause_file) as fh:
+        state = json.load(fh)
+    assert state["paused"] is True
