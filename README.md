@@ -171,6 +171,23 @@ backtester = Backtester(
 equity = backtester.run()
 ```
 
+For multiple trading pairs use ``MultiPairBacktester`` from the ``backtest``
+package. Provide a dictionary of DataFrames keyed by symbol and a strategy
+function that receives each row and symbol name:
+
+```python
+from backtest.engine import MultiPairBacktester
+
+data = {"BTCUSDT": btc_df, "ETHUSDT": eth_df}
+
+def strategy(row, symbol):
+    # very naive example
+    return "long" if row.name == 0 else None
+
+bt = MultiPairBacktester(data, strategy, initial_capital=1000, risk_per_trade=0.01)
+equity = bt.run()
+```
+
 ## Orchestrator
 
 The `orchestrator.py` script automates the full workflow—data download,
