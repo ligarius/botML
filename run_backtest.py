@@ -4,7 +4,7 @@ import argparse
 import pandas as pd
 
 from backtest.engine import MultiPairBacktester
-from backtest.report import report_console
+from backtest.report import report_summary_console
 
 
 def main():
@@ -31,7 +31,7 @@ def main():
         commission_pct=args.commission,
     )
     equity = bt.run()
-    report_console(list(bt.all_trades()), bt.equity_curve)
+    report_summary_console(list(bt.all_trades()), bt.equity_curve)
     print(f"final_equity: {equity}")
 
 
