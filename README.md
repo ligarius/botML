@@ -157,7 +157,7 @@ python hyperoptimize.py
 
 ## Backtesting
 
-The optional `backtest.py` module provides a `Backtester` class to simulate
+The ``backtest`` package provides a ``Backtester`` class to simulate
 trades using historical data and the shared risk utilities.
 
 ```python
