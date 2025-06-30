@@ -45,6 +45,37 @@ def restore_open_trades(trader: LiveTrader) -> None:
         LOGGER.warning("Failed to load open trades from %s", path)
 
 
+def check_manual_closures(trader: LiveTrader, row: pd.Series) -> None:
+    """Close trades when stop or take-profit is hit using latest data."""
+    high = float(row.get("high", row["close"]))
+    low = float(row.get("low", row["close"]))
+    for trade in list(trader.open_trades):
+        reason = None
+        price = None
+        if trade.direction == "long":
+            if low <= trade.stop:
+                reason = "stop"
+                price = trade.stop
+            elif high >= trade.take_profit:
+                reason = "take_profit"
+                price = trade.take_profit
+        else:
+            if high >= trade.stop:
+                reason = "stop"
+                price = trade.stop
+            elif low <= trade.take_profit:
+                reason = "take_profit"
+                price = trade.take_profit
+        if reason:
+            trader.close_trade(trade)
+            LOGGER.info(
+                "Closed %s trade at %.2f due to %s",
+                trade.direction,
+                price,
+                reason,
+            )
+
+
 def trading_cycle(symbol: str, trader: LiveTrader) -> None:
     df = load_recent_candles(symbol)
     df = add_features(df)
@@ -54,6 +85,7 @@ def trading_cycle(symbol: str, trader: LiveTrader) -> None:
     model = load_model(symbol)
     feat_cols = [c for c in df.columns if c not in {"open_time", "label"}]
     last_row = df.iloc[-1]
+    check_manual_closures(trader, last_row)
     pred = model.predict(last_row[feat_cols].to_frame().T)[0]
     LOGGER.info("Signal for %s: %s", symbol, pred)
     if pred == 1:
