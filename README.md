@@ -71,6 +71,7 @@ Important fields include:
 - `symbols` – trading pairs to fetch, empty to auto‑select the top symbols.
 - `api_key`/`api_secret` – required for live trading.
 - `equity_curve_file` and `open_trades_file` – files the dashboard reads.
+- `paused_file` – state file used to disable trading when drawdown limits are hit.
 - `commission_pct` – percentage fee applied on each trade side during backtests.
 - Logging options such as `log_file`, `log_rotation` and `log_format`.
 - `retry_attempts` and `retry_backoff` for network retries.
@@ -203,6 +204,10 @@ trader = LiveTrader(
 trader.open_trade(price=30000, direction='long', bracket=True)
 ```
 
+If the account equity drops below the allowed drawdown the trader
+automatically writes a paused flag to `paused_file` and will refuse to
+open new trades until `reset_pause()` is called.
+
 Calling ``open_trade`` with ``bracket=True`` places stop-loss and
 take-profit orders using the configured ``RiskManager``. Trade size is
 computed automatically from the ``PositionSizer`` and ``account_size``.
@@ -217,7 +222,8 @@ streamlit run dashboard.py
 
 Then open the displayed URL in your browser (usually
 `http://localhost:8501`). The dashboard reads the files defined in
-`config.yaml` (`equity_curve_file`, `open_trades_file` and `log_file`).
+`config.yaml` (`equity_curve_file`, `open_trades_file`, `paused_file` and
+`log_file`).
 
 ### Alert configuration
 

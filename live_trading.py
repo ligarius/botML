@@ -103,7 +103,8 @@ class LiveTrader:
                  client: Optional[BinanceClient] = None,
                  risk_manager: Optional[RiskManager] = None,
                  sizer: Optional[PositionSizer] = None,
-                 open_trades_file: Optional[str] = None):
+                 open_trades_file: Optional[str] = None,
+                 paused_file: Optional[str] = None):
         self.symbol = symbol
         self.account_size = account_size
         self.client = client or BinanceClient(API_KEY, API_SECRET)
@@ -111,6 +112,8 @@ class LiveTrader:
         self.risk_manager = risk_manager or RiskManager(account_size)
         self.open_trades_file = open_trades_file or CONFIG.get('open_trades_file', 'open_trades.json')
         self.open_trades = []
+        self.paused_file = paused_file or CONFIG.get('paused_file', 'paused.json')
+        self.paused = False
         path = Path(self.open_trades_file)
         if path.exists():
             try:
@@ -123,6 +126,15 @@ class LiveTrader:
             except Exception:
                 LOGGER.warning("Failed to load open trades from %s", path)
 
+        pause_path = Path(self.paused_file)
+        if pause_path.exists():
+            try:
+                with open(pause_path) as fh:
+                    state = json.load(fh)
+                self.paused = bool(state.get('paused'))
+            except Exception:
+                LOGGER.warning("Failed to load paused state from %s", pause_path)
+
     def reconnect(self) -> None:
         """Reconnect the Binance client."""
         self.client.reconnect()
@@ -131,7 +143,29 @@ class LiveTrader:
         """Resume trading after a connection drop."""
         self.reconnect()
 
+    def _persist_pause_state(self) -> None:
+        path = Path(self.paused_file)
+        try:
+            with open(path, 'w') as fh:
+                json.dump({'paused': self.paused}, fh)
+        except Exception:
+            LOGGER.warning("Failed to persist paused state to %s", path)
+
+    def reset_pause(self) -> None:
+        """Resume trading and clear the paused state."""
+        self.paused = False
+        path = Path(self.paused_file)
+        if path.exists():
+            try:
+                path.unlink()
+            except Exception:
+                pass
+        LOGGER.info("Trading resumed")
+
     def open_trade(self, price: float, direction: str = "long", bracket: bool = False) -> Optional[Trade]:
+        if self.paused:
+            LOGGER.info("Trading is paused - skipping new trade")
+            return None
         stop = self.risk_manager.stop_loss_price(price, direction)
         take_profit = self.risk_manager.take_profit_price(price, direction)
         size = self.sizer.size_from_stop(price, stop)
@@ -197,4 +231,9 @@ class LiveTrader:
 
     def update_equity(self, equity: float) -> bool:
         """Update equity and enforce max drawdown."""
-        return self.risk_manager.update_equity(equity)
+        allowed = self.risk_manager.update_equity(equity)
+        if not allowed and not self.paused:
+            self.paused = True
+            LOGGER.warning("Max drawdown reached. Pausing trading.")
+            self._persist_pause_state()
+        return allowed
