@@ -68,6 +68,22 @@ class BinanceClient:
             raise RuntimeError(f"Order request failed: {exc}") from exc
         return response.json()
 
+    def get_symbol_min_notional(self, symbol: str) -> float:
+        """Return the minimum notional value for a symbol."""
+        try:
+            resp = self._request('get', '/api/v3/exchangeInfo', params={'symbol': symbol})
+        except requests.RequestException as exc:
+            raise RuntimeError(f"exchangeInfo request failed: {exc}") from exc
+        data = resp.json()
+        try:
+            filters = data['symbols'][0]['filters']
+            for f in filters:
+                if f.get('filterType') == 'MIN_NOTIONAL':
+                    return float(f['minNotional'])
+        except (KeyError, IndexError, ValueError) as exc:
+            raise RuntimeError(f"Invalid exchangeInfo response: {exc}") from exc
+        raise RuntimeError('MIN_NOTIONAL filter not found')
+
 
 @dataclass
 class Trade:
@@ -102,11 +118,27 @@ class LiveTrader:
         """Resume trading after a connection drop."""
         self.reconnect()
 
-    def open_trade(self, price: float, direction: str = "long", bracket: bool = False) -> Trade:
+    def open_trade(self, price: float, direction: str = "long", bracket: bool = False) -> Optional[Trade]:
         stop = self.risk_manager.stop_loss_price(price, direction)
         take_profit = self.risk_manager.take_profit_price(price, direction)
         size = self.sizer.size_from_stop(price, stop)
         side = 'BUY' if direction == 'long' else 'SELL'
+        try:
+            min_notional = self.client.get_symbol_min_notional(self.symbol)
+        except Exception as exc:
+            LOGGER.warning("Could not fetch minNotional for %s: %s", self.symbol, exc)
+            min_notional = 0.0
+
+        order_value = size * price
+        if min_notional and order_value < min_notional:
+            LOGGER.info(
+                "Order value %.8f below minimum %.8f for %s - skipping",
+                order_value,
+                min_notional,
+                self.symbol,
+            )
+            return None
+
         self.client.create_order(symbol=self.symbol, side=side, type='MARKET', quantity=size)
         trade = Trade(price, direction, size, stop, take_profit)
         self.open_trades.append(trade)

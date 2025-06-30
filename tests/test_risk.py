@@ -6,8 +6,9 @@ from live_trading import LiveTrader
 
 
 class MockClient:
-    def __init__(self):
+    def __init__(self, min_notional=0):
         self.orders = []
+        self.min_notional = min_notional
 
     def create_order(self, **params):
         self.orders.append(params)
@@ -15,6 +16,9 @@ class MockClient:
 
     def reconnect(self):
         pass
+
+    def get_symbol_min_notional(self, symbol):
+        return self.min_notional
 
 
 def test_position_sizer_and_risk_manager():
@@ -48,3 +52,16 @@ def test_live_trader_open_trade(tmp_path):
         data = json.load(fh)
     assert data[0]["stop"] == trade.stop
     assert data[0]["take_profit"] == trade.take_profit
+
+
+def test_open_trade_below_min_notional(tmp_path, caplog):
+    client = MockClient(min_notional=20000)
+    open_file = tmp_path / "trades.json"
+    trader = LiveTrader("BTCUSDT", 10000, client=client, open_trades_file=str(open_file))
+
+    with caplog.at_level("INFO"):
+        trade = trader.open_trade(100, direction="long")
+
+    assert trade is None
+    assert client.orders == []
+    assert "below minimum" in caplog.text
