@@ -11,7 +11,9 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import GridSearchCV
 
 import bot
-from backtest import Backtester
+from typing import Tuple
+
+from backtest import MultiPairBacktester, compute_metrics
 from live_trading import LiveTrader
 from botml.features import add_features
 from botml.labeling import create_labels
@@ -63,18 +65,25 @@ def hyperopt_random_forest(df: pd.DataFrame, model_path: Path) -> RandomForestCl
     return best
 
 
-def backtest_model(df: pd.DataFrame, model: RandomForestClassifier, commission_pct: float = 0.0) -> float:
-    feat_cols = [c for c in df.columns if c not in {'label', 'open_time'}]
+def backtest_model(
+    df: pd.DataFrame,
+    model: RandomForestClassifier,
+    symbol: str,
+    commission_pct: float = 0.0,
+) -> Tuple[float, dict, list]:
+    feat_cols = [c for c in df.columns if c not in {"label", "open_time"}]
 
-    def strategy(row):
+    def strategy(row, sym):
         pred = model.predict(row[feat_cols].to_frame().T)[0]
-        return 'long' if pred == 1 else None
+        return "long" if pred == 1 else None
 
-    bt = Backtester(df, strategy, commission_pct=commission_pct)
+    bt = MultiPairBacktester({symbol: df}, strategy, commission_pct=commission_pct)
     equity = bt.run()
+    trades = list(bt.all_trades())
+    metrics = compute_metrics(trades, bt.equity_curve)
     logger = logging.getLogger(__name__)
     logger.info("Backtest finished with equity %.2f", equity)
-    return equity
+    return equity, metrics, trades
 
 
 def run_live_trading(symbol: str, price: float, model: RandomForestClassifier, last_row: pd.Series):
@@ -112,7 +121,30 @@ def main():
         model = train_random_forest(df, model_path)
 
     commission_pct = float(config.get('commission_pct', 0.0))
-    equity = backtest_model(df, model, commission_pct=commission_pct)
+    equity, metrics, trades = backtest_model(df, model, symbol, commission_pct=commission_pct)
+
+    start_equity = equity - metrics.get("pnl", 0.0)
+    roi = metrics.get("pnl", 0.0) / start_equity if start_equity else 0.0
+
+    logger.info("Backtested symbol %s", symbol)
+    for t in trades:
+        logger.info(
+            "Trade %s %s -> %s entry %.2f exit %.2f pnl %.2f",
+            t.symbol,
+            t.entry_time,
+            t.exit_time,
+            t.entry_price,
+            t.exit_price,
+            t.pnl(),
+        )
+
+    logger.info(
+        "ROI: %.2f%% | Profit factor: %.2f | Sharpe: %.2f | Drawdown: %.2f",
+        roi * 100,
+        metrics.get("profit_factor", 0.0),
+        metrics.get("sharpe", 0.0),
+        metrics.get("max_drawdown", 0.0),
+    )
 
     if args.live:
         run_live_trading(symbol, float(df.iloc[-1]['close']), model, df.iloc[-1])
