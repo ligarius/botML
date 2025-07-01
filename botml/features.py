@@ -1,8 +1,23 @@
+"""Feature engineering utilities for trading data."""
+
 import pandas as pd
 import numpy as np
 
-def add_features(df):
-    # Asume columnas: ['open_time', 'open', 'high', 'low', 'close', 'volume']
+def add_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Return a DataFrame enriched with common technical indicators.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Input data containing ``open_time``, ``open``, ``high``, ``low``,
+        ``close`` and ``volume`` columns.
+
+    Returns
+    -------
+    pandas.DataFrame
+        DataFrame with additional indicator columns and without NaN values.
+    """
+    # Assumes columns: ['open_time', 'open', 'high', 'low', 'close', 'volume']
     
     # 1. Retornos
     df['return_1m'] = df['close'].pct_change(1)
