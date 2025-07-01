@@ -188,6 +188,40 @@ bt = MultiPairBacktester(data, strategy, initial_capital=1000, risk_per_trade=0.
 equity = bt.run()
 ```
 
+### Running `run_backtest.py`
+
+The repository includes a small CLI wrapper around `MultiPairBacktester`.
+Each symbol passed to `--symbols` must have a corresponding CSV file. The CSV
+needs at least the `close`, `high` and `low` columns, typically exported from
+`binance_1m.db`.
+
+Example invocation using relative paths:
+
+```bash
+python run_backtest.py --symbols BTCUSDT ETHUSDT \
+    --csv data/BTCUSDT.csv data/ETHUSDT.csv --capital 10000
+```
+
+Absolute paths work the same way. If you only have the SQLite database,
+export the tables first. Using `sqlite3`:
+
+```bash
+sqlite3 binance_1m.db -header -csv \
+  "SELECT open_time,open,high,low,close,volume FROM _BTCUSDT" \
+  > data/BTCUSDT.csv
+```
+
+Or with Python:
+
+```bash
+python - <<'EOF'
+import sqlite3, pandas as pd
+conn = sqlite3.connect('binance_1m.db')
+pd.read_sql('SELECT open_time, open, high, low, close, volume FROM _BTCUSDT', conn)
+  .to_csv('data/BTCUSDT.csv', index=False)
+EOF
+```
+
 ## Orchestrator
 
 The `orchestrator.py` script automates the full workflow—data download,
