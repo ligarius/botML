@@ -28,9 +28,12 @@ def load_price_data(db_path: str, symbol: str) -> pd.DataFrame:
     return df
 
 
-def generate_features_and_labels(df: pd.DataFrame) -> pd.DataFrame:
+def generate_features_and_labels(config: dict, df: pd.DataFrame) -> pd.DataFrame:
+    """Add features and labels using configuration options."""
+    horizon = int(config.get("label_horizon", 5))
+    threshold = float(config.get("label_threshold", 0.002))
     df = add_features(df)
-    df = create_labels(df)
+    df = create_labels(df, horizon=horizon, threshold=threshold)
     return df
 
 
@@ -114,7 +117,7 @@ def main():
     data: Dict[str, pd.DataFrame] = {}
     for sym in symbols:
         df = load_price_data(db_path, sym)
-        df = generate_features_and_labels(df)
+        df = generate_features_and_labels(config, df)
         data[sym] = df
 
     train_df = pd.concat(data.values(), ignore_index=True)
