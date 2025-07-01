@@ -110,7 +110,9 @@ def main():
     bot.download_and_store_all()
 
     db_path = config.get('database_path', 'binance_1m.db')
-    symbol = (config.get('symbols') or ['BTCUSDT'])[0]
+    symbols = config.get('symbols') or ['BTCUSDT']
+    logger.info("Processing symbols: %s", ", ".join(symbols))
+    symbol = symbols[0]
     df = load_price_data(db_path, symbol)
     df = generate_features_and_labels(df)
 

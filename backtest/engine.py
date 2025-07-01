@@ -35,7 +35,8 @@ class MultiPairBacktester:
     def _close_trade(self, symbol: str, index: int, price: float, reason: str):
         trade = self.open_trades.pop(symbol)
         trade.exit_index = index
-        trade.exit_time = datetime.utcnow()
+        exit_row = self.data[symbol].iloc[index]
+        trade.exit_time = exit_row.get("open_time", datetime.utcnow())
         trade.exit_price = price
         trade.reason = reason
         fee = (trade.entry_price + price) * trade.size * self.commission_pct
@@ -92,7 +93,7 @@ class MultiPairBacktester:
                             symbol=symbol,
                             direction=signal,
                             entry_index=i,
-                            entry_time=datetime.utcnow(),
+                            entry_time=row.get("open_time", datetime.utcnow()),
                             entry_price=price,
                             size=size,
                             stop=stop,
