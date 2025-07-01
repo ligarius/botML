@@ -1,6 +1,12 @@
 Install dependencies with `pip install -r requirements.txt`.
 Use `pip install -r requirements-dev.txt` to add the testing tools.
 
+Run the test suite with:
+
+```
+pytest --maxfail=1 --disable-warnings
+```
+
 Run the downloader:
 
 ```

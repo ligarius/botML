@@ -10,11 +10,11 @@ Install the runtime dependencies using the provided requirements file:
 pip install -r requirements.txt
 ```
 
-To run the unit tests, also install the development requirements and execute `pytest`:
+To run the unit tests, also install the development requirements and execute `pytest` with the recommended flags:
 
 ```bash
 pip install -r requirements-dev.txt  # adds pytest and helpers
-pytest -q
+pytest --maxfail=1 --disable-warnings
 ```
 
 ## Usage
