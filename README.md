@@ -38,6 +38,18 @@ Each trading pair is saved in its own table prefixed with an underscore (for exa
 
 The training script `train_model.py` also reads the database path and target symbol from the same configuration file.
 
+## Command line interface
+
+`cli.py` provides a single entry point for the most common tasks. Override the
+configuration file with `--config` if needed:
+
+```bash
+python cli.py train-model
+python cli.py hyperopt --config my_config.yaml
+python cli.py backtest --symbols BTCUSDT ETHUSDT \
+    --csv data/BTC.csv data/ETH.csv --capital 10000
+```
+
 `train_model.py` uses the first entry in `symbols` as its target. If the list is
 empty it defaults to `BTCUSDT`, which isn't downloaded when running
 `bot.py` with the default symbol selection (stablecoin pairs are filtered out).
