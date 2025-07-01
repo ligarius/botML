@@ -23,6 +23,10 @@ def main():
     p.add_argument("--risk", type=float, default=0.01, help="Risk per trade")
     p.add_argument("--min_notional", type=float, default=0.0)
     p.add_argument("--commission", type=float, default=0.0)
+    p.add_argument(
+        "--db-path",
+        help="Optional path to binance_1m.db for auto-exporting missing CSVs",
+    )
     args = p.parse_args()
 
     if len(args.symbols) != len(args.csv):
@@ -30,9 +34,21 @@ def main():
             f"Number of symbols ({len(args.symbols)}) does not match number of CSV files ({len(args.csv)})"
         )
 
-    for path in args.csv:
-        if not Path(path).is_file():
-            raise FileNotFoundError(f"CSV file not found: {path}")
+    for symbol, path in zip(args.symbols, args.csv):
+        csv_path = Path(path)
+        if not csv_path.is_file():
+            if not args.db_path:
+                raise FileNotFoundError(f"CSV file not found: {path}")
+            import sqlite3
+
+            query = (
+                f"SELECT open_time, open, high, low, close, volume FROM _{symbol}"
+            )
+            with sqlite3.connect(args.db_path) as conn:
+                df = pd.read_sql(query, conn)
+            csv_path.parent.mkdir(parents=True, exist_ok=True)
+            df.to_csv(csv_path, index=False)
+            print(f"created {csv_path} from table _{symbol}")
 
     data = {sym: pd.read_csv(path) for sym, path in zip(args.symbols, args.csv)}
 

@@ -193,7 +193,8 @@ equity = bt.run()
 The repository includes a small CLI wrapper around `MultiPairBacktester`.
 Each symbol passed to `--symbols` must have a corresponding CSV file. The CSV
 needs at least the `close`, `high` and `low` columns, typically exported from
-`binance_1m.db`.
+`binance_1m.db`. Missing files can be created on the fly by also providing
+`--db-path` pointing to the database.
 
 Example invocation using relative paths:
 
@@ -202,8 +203,16 @@ python run_backtest.py --symbols BTCUSDT ETHUSDT \
     --csv data/BTCUSDT.csv data/ETHUSDT.csv --capital 10000
 ```
 
-Absolute paths work the same way. If you only have the SQLite database,
-export the tables first. Using `sqlite3`:
+Absolute paths work the same way. If you only have the SQLite database you can
+let the script export the required tables automatically:
+
+```bash
+python run_backtest.py --symbols BTCUSDT ETHUSDT \
+    --csv data/BTCUSDT.csv data/ETHUSDT.csv \
+    --db-path binance_1m.db --capital 10000
+```
+
+Alternatively, export the tables manually using `sqlite3`:
 
 ```bash
 sqlite3 binance_1m.db -header -csv \
