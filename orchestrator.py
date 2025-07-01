@@ -1,3 +1,5 @@
+"""Orchestrate data processing, model training and backtesting."""
+
 import argparse
 import csv
 import json
@@ -21,6 +23,8 @@ from botml.utils import load_config, setup_logging
 
 
 def load_price_data(db_path: str, symbol: str) -> pd.DataFrame:
+    """Load price data for a given trading symbol from a SQLite database."""
+
     conn = sqlite3.connect(db_path)
     table = f"_{symbol}"
     df = pd.read_sql(f"SELECT * FROM {table}", conn)
@@ -29,7 +33,7 @@ def load_price_data(db_path: str, symbol: str) -> pd.DataFrame:
 
 
 def generate_features_and_labels(config: dict, df: pd.DataFrame) -> pd.DataFrame:
-    """Add features and labels using configuration options."""
+    """Return ``df`` with new feature columns and binary labels."""
     horizon = int(config.get("label_horizon", 5))
     threshold = float(config.get("label_threshold", 0.002))
     df = add_features(df)
@@ -38,6 +42,7 @@ def generate_features_and_labels(config: dict, df: pd.DataFrame) -> pd.DataFrame
 
 
 def train_random_forest(df: pd.DataFrame, model_path: Path) -> RandomForestClassifier:
+    """Train a RandomForest model and persist it to ``model_path``."""
     features = [c for c in df.columns if c not in {'label', 'open_time'}]
     X = df[features]
     y = df['label']
@@ -51,6 +56,7 @@ def train_random_forest(df: pd.DataFrame, model_path: Path) -> RandomForestClass
 
 
 def hyperopt_random_forest(df: pd.DataFrame, model_path: Path) -> RandomForestClassifier:
+    """Optimize RandomForest hyperparameters using ``GridSearchCV``."""
     features = [c for c in df.columns if c not in {'label', 'open_time'}]
     X = df[features]
     y = df['label']
@@ -73,6 +79,7 @@ def backtest_model(
     model: RandomForestClassifier,
     commission_pct: float = 0.0,
 ) -> Tuple[float, dict, list]:
+    """Run a backtest using the provided model and data."""
     sample_df = next(iter(data.values()))
     feat_cols = [c for c in sample_df.columns if c not in {"label", "open_time"}]
 
@@ -90,6 +97,8 @@ def backtest_model(
 
 
 def run_live_trading(symbol: str, price: float, model: RandomForestClassifier, last_row: pd.Series):
+    """Execute a live trade if the model predicts a long signal."""
+
     feat_cols = [c for c in last_row.index if c not in {'label', 'open_time'}]
     pred = model.predict(last_row[feat_cols].to_frame().T)[0]
     if pred == 1:
@@ -100,6 +109,8 @@ def run_live_trading(symbol: str, price: float, model: RandomForestClassifier, l
 
 
 def main():
+    """Entry point for command line execution."""
+
     parser = argparse.ArgumentParser(description="Run the botML workflow")
     parser.add_argument('--hyperopt', action='store_true', help='Use hyperparameter optimization')
     parser.add_argument('--live', action='store_true', help='Launch live trading after backtest')
