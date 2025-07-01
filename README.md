@@ -233,9 +233,11 @@ EOF
 
 ## Orchestrator
 
-The `orchestrator.py` script automates the full workflow—data download,
-feature generation, model training, backtesting and optionally live
-trading. Run it with optional flags:
+`orchestrator.py` ties the pieces together. It reads all symbols defined in
+`config.yaml`, downloads their data, combines the frames into a single training
+set and fits one model. The resulting classifier is then evaluated on every
+pair using `MultiPairBacktester`. Optionally it can run hyperparameter search,
+open a live trade after the backtest and write a report.
 
 ```bash
 python orchestrator.py --hyperopt --live --report results.json
@@ -245,6 +247,16 @@ python orchestrator.py --hyperopt --live --report results.json
 * `--live` executes a trade using the last candle after the backtest.
 * `--report` writes a summary to the given path (format inferred from the
   extension).
+
+Example configuration with multiple trading pairs:
+
+```yaml
+symbols: ["BTCUSDT", "ETHUSDT", "BNBUSDT"]
+```
+
+```bash
+python orchestrator.py --report multi_results.json
+```
 
 ## Live trading
 
