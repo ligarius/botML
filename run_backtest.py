@@ -1,6 +1,7 @@
 """Command line interface to run MultiPairBacktester."""
 
 import argparse
+from pathlib import Path
 import pandas as pd
 
 from backtest.engine import MultiPairBacktester
@@ -8,14 +9,30 @@ from backtest.report import report_summary_console
 
 
 def main():
-    p = argparse.ArgumentParser(description="Run backtest")
-    p.add_argument("--symbols", nargs="+", required=True)
-    p.add_argument("--csv", nargs="+", required=True, help="CSV files per symbol")
+    p = argparse.ArgumentParser(
+        description="Run backtest on multiple symbols."
+    )
+    p.add_argument("--symbols", nargs="+", required=True, help="Symbols to backtest")
+    p.add_argument(
+        "--csv",
+        nargs="+",
+        required=True,
+        help="CSV file for each symbol (must match --symbols)",
+    )
     p.add_argument("--capital", type=float, default=1000.0)
     p.add_argument("--risk", type=float, default=0.01, help="Risk per trade")
     p.add_argument("--min_notional", type=float, default=0.0)
     p.add_argument("--commission", type=float, default=0.0)
     args = p.parse_args()
+
+    if len(args.symbols) != len(args.csv):
+        raise ValueError(
+            f"Number of symbols ({len(args.symbols)}) does not match number of CSV files ({len(args.csv)})"
+        )
+
+    for path in args.csv:
+        if not Path(path).is_file():
+            raise FileNotFoundError(f"CSV file not found: {path}")
 
     data = {sym: pd.read_csv(path) for sym, path in zip(args.symbols, args.csv)}
 
