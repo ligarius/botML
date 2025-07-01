@@ -1,14 +1,27 @@
 import json
 import logging
+import os
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 import yaml
 
 
-def load_config():
-    """Load configuration from config.yaml located at the project root."""
-    config_path = Path(__file__).resolve().parents[1] / 'config.yaml'
-    with open(config_path, 'r') as fh:
+def load_config(path: str | None = None) -> dict:
+    """Return configuration dictionary.
+
+    Parameters
+    ----------
+    path : str, optional
+        Explicit path to a YAML configuration file. If omitted the function
+        first checks the ``BOTML_CONFIG`` environment variable and finally
+        falls back to ``config.yaml`` located at the project root.
+    """
+
+    if path is None:
+        path = os.getenv("BOTML_CONFIG")
+
+    config_path = Path(path) if path else Path(__file__).resolve().parents[1] / "config.yaml"
+    with open(config_path, "r") as fh:
         return yaml.safe_load(fh)
 
 
