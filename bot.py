@@ -125,22 +125,45 @@ def initialize_table(conn, symbol):
     conn.execute(create_sql)
     conn.commit()
 
+def interval_to_ms(interval: str) -> int:
+    """Return the number of milliseconds represented by a Binance interval."""
+    unit = interval[-1]
+    num = int(interval[:-1])
+    if unit == 'm':
+        return num * 60_000
+    if unit == 'h':
+        return num * 60 * 60_000
+    if unit == 'd':
+        return num * 24 * 60 * 60_000
+    if unit == 'w':
+        return num * 7 * 24 * 60 * 60_000
+    if unit == 'M':
+        return num * 30 * 24 * 60 * 60_000
+    raise ValueError(f"Unknown interval: {interval}")
+
 def download_and_store_all():
     symbols = SYMBOLS_OVERRIDE or get_top_30_symbols()
     conn = sqlite3.connect(DB_PATH)
 
-    # Start HISTORY_DAYS days ago
-    start_ts = int((time.time() - HISTORY_DAYS * 24 * 60 * 60) * 1000)
-    now_ms = int(time.time() * 1000)
+    default_start = int((time.time() - HISTORY_DAYS * 24 * 60 * 60) * 1000)
+    interval_ms = interval_to_ms(INTERVAL)
 
     for symbol in symbols:
         logging.info("Downloading %s...", symbol)
         initialize_table(conn, symbol)
-        since = start_ts
 
-        # Loop until we reach current time or no more data
+        table = f"_{symbol}"
+        row = conn.execute(f"SELECT MAX(open_time) FROM {table}").fetchone()
+        if row and row[0]:
+            last_ts = int(pd.to_datetime(row[0]).value / 1_000_000)
+            since = last_ts + interval_ms
+        else:
+            since = default_start
+
+        now_ms = int(time.time() * 1000)
+
         while since < now_ms:
-            end_ts = since + 1000 * 60 * 1000  # request up to 1000 minutes
+            end_ts = since + 1000 * interval_ms
             if end_ts > now_ms:
                 end_ts = now_ms
 
@@ -151,7 +174,7 @@ def download_and_store_all():
             df = klines_to_df(klines)
             save_to_sqlite(df, symbol, conn)
 
-            since += 1000 * 60 * 1000
+            since += 1000 * interval_ms
             time.sleep(0.5)  # No saturar la API
 
     conn.close()
