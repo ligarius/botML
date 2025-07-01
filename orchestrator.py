@@ -11,7 +11,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import GridSearchCV
 
 import bot
-from typing import Tuple, Dict, List
+from typing import Tuple, Dict
 
 from backtest import MultiPairBacktester, compute_metrics
 from live_trading import LiveTrader
