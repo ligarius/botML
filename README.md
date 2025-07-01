@@ -285,3 +285,7 @@ Provide SMTP or webhook credentials as needed.
 ## Disclaimer
 
 This project is for educational purposes only and does not constitute financial advice. Trading cryptocurrencies or any financial instrument carries significant risk, including the potential loss of all capital. Use the code and information in this repository at your own discretion.
+
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
