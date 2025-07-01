@@ -11,7 +11,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import GridSearchCV
 
 import bot
-from typing import Tuple
+from typing import Tuple, Dict, List
 
 from backtest import MultiPairBacktester, compute_metrics
 from live_trading import LiveTrader
@@ -66,18 +66,18 @@ def hyperopt_random_forest(df: pd.DataFrame, model_path: Path) -> RandomForestCl
 
 
 def backtest_model(
-    df: pd.DataFrame,
+    data: Dict[str, pd.DataFrame],
     model: RandomForestClassifier,
-    symbol: str,
     commission_pct: float = 0.0,
 ) -> Tuple[float, dict, list]:
-    feat_cols = [c for c in df.columns if c not in {"label", "open_time"}]
+    sample_df = next(iter(data.values()))
+    feat_cols = [c for c in sample_df.columns if c not in {"label", "open_time"}]
 
     def strategy(row, sym):
         pred = model.predict(row[feat_cols].to_frame().T)[0]
         return "long" if pred == 1 else None
 
-    bt = MultiPairBacktester({symbol: df}, strategy, commission_pct=commission_pct)
+    bt = MultiPairBacktester(data, strategy, commission_pct=commission_pct)
     equity = bt.run()
     trades = list(bt.all_trades())
     metrics = compute_metrics(trades, bt.equity_curve)
@@ -110,23 +110,28 @@ def main():
     bot.download_and_store_all()
 
     db_path = config.get('database_path', 'binance_1m.db')
-    symbol = (config.get('symbols') or ['BTCUSDT'])[0]
-    df = load_price_data(db_path, symbol)
-    df = generate_features_and_labels(df)
+    symbols = config.get('symbols') or ['BTCUSDT']
+    data: Dict[str, pd.DataFrame] = {}
+    for sym in symbols:
+        df = load_price_data(db_path, sym)
+        df = generate_features_and_labels(df)
+        data[sym] = df
 
-    model_path = Path('rf_best.pkl' if args.hyperopt else f'rf_{symbol.lower()}.pkl')
+    train_df = pd.concat(data.values(), ignore_index=True)
+
+    model_path = Path('rf_best.pkl' if args.hyperopt else 'rf_model.pkl')
     if args.hyperopt:
-        model = hyperopt_random_forest(df, model_path)
+        model = hyperopt_random_forest(train_df, model_path)
     else:
-        model = train_random_forest(df, model_path)
+        model = train_random_forest(train_df, model_path)
 
     commission_pct = float(config.get('commission_pct', 0.0))
-    equity, metrics, trades = backtest_model(df, model, symbol, commission_pct=commission_pct)
+    equity, metrics, trades = backtest_model(data, model, commission_pct=commission_pct)
 
     start_equity = equity - metrics.get("pnl", 0.0)
     roi = metrics.get("pnl", 0.0) / start_equity if start_equity else 0.0
 
-    logger.info("Backtested symbol %s", symbol)
+    logger.info("Backtested symbols %s", ", ".join(symbols))
     for t in trades:
         logger.info(
             "Trade %s %s -> %s entry %.2f exit %.2f pnl %.2f",
@@ -147,10 +152,11 @@ def main():
     )
 
     if args.live:
-        run_live_trading(symbol, float(df.iloc[-1]['close']), model, df.iloc[-1])
+        last_sym = symbols[0]
+        run_live_trading(last_sym, float(data[last_sym].iloc[-1]['close']), model, data[last_sym].iloc[-1])
 
     summary = {
-        "symbol": symbol,
+        "symbols": ",".join(symbols),
         "final_equity": round(equity, 2),
         "model": str(model_path),
     }
