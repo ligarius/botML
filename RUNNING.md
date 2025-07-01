@@ -13,6 +13,12 @@ Launch the full pipeline including training and backtesting:
 python orchestrator.py --hyperopt --live
 ```
 
+Run the research loop to periodically update the model without executing trades:
+
+```
+python research_loop.py
+```
+
 Start the Streamlit dashboard to monitor results:
 
 ```

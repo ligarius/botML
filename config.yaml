@@ -7,6 +7,8 @@ symbols: []
 history_days: 7
 # Kline interval
 interval: '1m'
+# Seconds between research loop updates
+update_interval: 900
 # Log level for console and file handlers (e.g. INFO, DEBUG, WARNING)
 log_level: INFO
 # Path to the log file

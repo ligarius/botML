@@ -303,6 +303,20 @@ Edit the `alerts` section in `config.yaml` to enable email or webhook
 notifications when the drawdown exceeds `alert_threshold_pct`.
 Provide SMTP or webhook credentials as needed.
 
+## Research loop
+
+`research_loop.py` automates data collection and model updates without placing
+live orders. Run it from the project root:
+
+```bash
+python research_loop.py
+```
+
+The loop sleeps for `update_interval` seconds between iterations (set in
+`config.yaml`, default `900`). After each cycle it saves an updated model
+(`rf_loop.pkl`), recent predictions (`predictions.json`) and backtest metrics
+(`metrics.json`).
+
 ## Disclaimer
 
 This project is for educational purposes only and does not constitute financial advice. Trading cryptocurrencies or any financial instrument carries significant risk, including the potential loss of all capital. Use the code and information in this repository at your own discretion.
