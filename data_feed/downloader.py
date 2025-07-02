@@ -31,10 +31,16 @@ class DataFeed:
         self.timeout = config.get("request_timeout", 10)
 
     def update(self):
-        """Download the most recent candles for all symbols and store them."""
+        """Download the most recent candles for all symbols and store them.
+
+        Saved CSV files include a ``symbol`` column for easier merging of
+        multiple data sets.
+        """
 
         for symbol in self.symbols:
             df = self._fetch_binance_klines(symbol)
+            if not df.empty and "symbol" not in df.columns:
+                df["symbol"] = symbol
             df.to_csv(f"{symbol}_{self.interval}.csv", index=False)
             self.logger.info(f"Actualizadas velas para {symbol}")
 
@@ -51,7 +57,9 @@ class DataFeed:
         Returns
         -------
         pandas.DataFrame
-            Data frame with kline information or an empty frame on error.
+            Data frame with kline information. On success it includes a
+            ``symbol`` column with the requested market name. An empty frame is
+            returned on error.
         """
 
         endpoint = "/api/v3/klines"
@@ -88,7 +96,11 @@ class DataFeed:
                         ],
                     )
                     df["open_time"] = pd.to_datetime(df["open_time"], unit="ms")
-                    df["close_time"] = pd.to_datetime(df["close_time"], unit="ms")
+                    df["close_time"] = pd.to_datetime(
+                        df["close_time"], unit="ms"
+                    )
+                    # Include the symbol so downstream consumers know the market
+                    df["symbol"] = symbol
                     return df
                 self.logger.warning(
                     f"Intento {attempt}: respuesta {resp.status_code} al descargar velas"
