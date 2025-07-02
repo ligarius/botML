@@ -21,47 +21,102 @@ Este archivo centraliza las normas y recomendaciones para el desarrollo y operac
 
 ## Estructura de Carpetas y Archivos
 
-* **/botml/** – Lógica principal, features, modelos ML, procesamiento.
-* **/backtest/** – Motor de simulación histórica, métricas, validación.
-* **/tests/** – Pruebas unitarias y de integración.
-* **config.yaml** – Configuración principal (usar variables de entorno para secretos).
-* **botml/data.py** – Utilidades de descarga y almacenamiento de datos.
-* **botml/workflow.py** – Funciones centrales de orquestación y backtest.
-* **orchestrator.py** – Envoltura ligera que expone `botml.workflow`.
-* **bot.py** – Envoltura ligera que reexporta `botml.data`.
-* **live\_trading.py** – Solo ejecución real; debe poder desactivarse en modo research.
+
 
 **Regla:**
-*Coloca cualquier nueva funcionalidad según su propósito: lógica core en `/botml/`, backtesting en `/backtest/`, pruebas en `/tests/`.*
+
 
 ---
 
 ## Convenciones de Código
 
-* **Python ≥ 3.9.**
-* **Style Guide:** PEP8, docstrings obligatorios en módulos, clases y funciones públicas.
-* **Idioma:** Comentarios y docstrings en inglés.
-* **No expongas datos sensibles:** No hardcodear claves, no loggear secrets, usar env vars.
-* **Nomenclatura:** snake\_case para funciones/variables, CamelCase para clases.
-* **Funcionalidad aislada:** Cada función debe tener una única responsabilidad.
+Python 3.11+
+
+scikit-learn, Optuna para optimización y modelos básicos (o PyTorch si vas a escalar a deep learning).
+
+SQLAlchemy/SQLite para almacenamiento persistente.
+
+Websocket/REST API para conexión con Binance y el dashboard.
+
+Streamlit avanzado para dashboard, o migrar a Dash/Plotly si quieres mayor control.
+
+pytest para tests automáticos.
 
 ---
 
-## Flujo de Automatización
+Características clave a implementar
+1. Robustez y Operación 24/7
+Watchdog integrado: monitoriza el proceso, detecta cuelgues o errores, reinicia automáticamente si hay fallo.
 
-1. **Descarga y actualización de datos:** Cada ciclo, solo descargar nuevos datos.
-2. **Procesamiento y features:** Calcular indicadores relevantes y actualizarlos.
-3. **Entrenamiento ML:** Reentrenar modelo en cada ciclo (o usar lógica incremental).
-4. **Generación y validación de señales:** Aplicar backtest automático en cada iteración.
-5. **Ejecución (si aplica):** Solo en modo producción, ejecutar órdenes reales bajo control de riesgo.
-6. **Auditoría:** Guardar todas las señales, métricas y logs para revisión posterior.
+Manejo avanzado de errores y reconexión automática en todas las conexiones con Binance.
 
----
+Persistencia de estado: el bot debe guardar su estado (último modelo, posiciones, histórico de señales, parámetros) para poder recuperarse exactamente donde quedó después de un crash o reinicio.
 
-## Pruebas y Validación
+2. Entrenamiento y Evolución Autónoma
+Entrenamiento automático y periódico del modelo (por tiempo, cantidad de trades o performance).
 
-* **Pull Requests:** Todo cambio debe incluir pruebas unitarias si modifica la lógica de features, modelos, riesgo o ejecución.
-* **Ejecución de tests:**
+Optimización de hiperparámetros: usa Optuna, Hyperopt o similar para que el bot busque solo los mejores parámetros (no solo GridSearch).
+
+Recompensa/castigo de estrategias: guarda histórico de performance y ajusta pesos/selección automática de modelos según su éxito real en producción.
+
+Selección adaptativa de features e intervalos: el bot debe poder probar distintos intervalos y features, y quedarse con los que mejor performance entreguen de forma autónoma.
+
+3. Especialización Intradía y Velas Pequeñas
+Datafeed flexible: descarga y actualiza datos en el intervalo más pequeño que permita Binance (ideal 1m o menor si es posible), configurable desde YAML y modificable en caliente por el propio bot.
+
+Gestión inteligente de históricos: carga incremental, sin volver a descargar lo ya obtenido, con almacenamiento eficiente (por ejemplo, en SQLite).
+
+4. Live Trading y Simulación Realista
+Modo “live” y “simulado” usando exactamente la misma lógica y flujo.
+
+Simulación realista: incluye comisiones, slippage, delays y fills parciales, igual que en condiciones reales de Binance.
+
+Gestión de capital y posiciones: controla balance, sizing dinámico y control de riesgo por operación y global.
+
+Chequeo y control de órdenes: verifica fills, estado de órdenes y saldos antes de cada acción.
+
+5. Dashboard en Tiempo Real
+Dashboard web robusto (Streamlit, Dash o similar) mostrando:
+
+PnL acumulado y por símbolo
+
+ROI, drawdown, winrate, Sharpe Ratio, y demás KPIs clave
+
+Estadísticas de señales, operaciones abiertas/cerradas, errores y alertas
+
+Evolución de hiperparámetros, selección de features, y modelo actual usado
+
+Logs y eventos críticos del sistema
+
+Historial de decisiones y operaciones consultable en el dashboard
+
+6. Logging y Auditoría
+Logging estructurado (idealmente JSON o similar) y simple para humanos.
+
+Logs de decisiones: cada señal, motivo de entrada/salida, parámetros, performance, anomalías, etc.
+
+Alertas automáticas por Telegram/email para eventos críticos: caídas, errores API, drawdown extremo, fill anómalo, etc.
+
+7. Seguridad y Autodefensa
+Límites de pérdidas y drawdown: el bot debe auto-desactivarse o pausar si se supera un drawdown, una pérdida máxima diaria o un umbral de riesgo predeterminado.
+
+Verificación de saldos y estado de la cuenta antes de ejecutar operaciones.
+
+8. Modularidad y Escalabilidad
+Código desacoplado por módulos: feed de datos, modelo, ejecución, backtest, dashboard, logging, watchdog, etc., cada uno en su package/carpeta.
+
+Fácil de testear y actualizar cada módulo sin romper el sistema completo.
+
+Listo para agregar nuevos modelos, indicadores, exchanges o estrategias en el futuro.
+
+Extras para operación real:
+Backtest con visualización y comparación automática de diferentes estrategias, modelos, y periodos.
+
+Capacidad de operar múltiples símbolos, cada uno con lógica y modelo propio si es necesario.
+
+Herramientas de análisis automático de errores y eventos para aprender del pasado.
+
+
 
   ```
   pytest --maxfail=1 --disable-warnings
