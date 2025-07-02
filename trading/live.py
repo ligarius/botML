@@ -1,6 +1,9 @@
 """Live trading utilities for sending orders to an exchange."""
 
 
+import os
+
+
 class Trader:
     """Execute real trades on the configured exchange."""
 
@@ -17,6 +20,8 @@ class Trader:
 
         self.config = config
         self.logger = logger
+        self.api_key = os.environ.get("API_KEY", config.get("api_key"))
+        self.api_secret = os.environ.get("API_SECRET", config.get("api_secret"))
 
     def execute(self, signals):
         """Send trading orders for the provided signals."""
