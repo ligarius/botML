@@ -32,7 +32,7 @@ Start the Streamlit interface in a separate process:
 ```bash
 streamlit run dashboard/dashboard.py
 ```
-When `main.py` runs without Streamlit, dashboard updates are skipped to avoid warning messages.
+`main.py` writes metrics to `results.json`. The Streamlit dashboard reads this file to display the latest data.
 
 ## Running Tests
 Use pytest to run the automated tests:

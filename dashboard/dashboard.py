@@ -1,42 +1,33 @@
-"""Simple Streamlit UI for monitoring bot metrics."""
+"""Streamlit dashboard displaying metrics saved by the bot."""
 
 import streamlit as st
 
-try:
-    from streamlit.runtime.scriptrunner import get_script_run_ctx
-except Exception:  # streamlit < 1.18 compatibility
-    def get_script_run_ctx() -> object:
-        return None
+from modules.analytics import load_metrics
 
 
-class Dashboard:
-    """Render metrics and charts in a Streamlit dashboard."""
+st.set_page_config(page_title="Bot Dashboard")
 
-    def __init__(self, config, logger):
-        """Create the dashboard manager."""
 
-        self.config = config
-        self.logger = logger
+def main() -> None:
+    """Render dashboard widgets from ``results.json``."""
+    st.title("Dashboard Bot Trading")
+    try:
+        data = load_metrics("results.json")
+    except FileNotFoundError:
+        st.error("results.json not found. Run the bot first.")
+        return
 
-    def update(self, trader_stats, model_stats, variants=None):
-        """Render the latest trader and model statistics along with variants."""
-        # Avoid warning when Streamlit is not running.
-        ctx = get_script_run_ctx()
-        if ctx is None:
-            self.logger.debug("Streamlit context missing; dashboard update skipped")
-            return
+    st.subheader("Trader stats")
+    st.json(data.get("trader", {}))
 
-        st.title("Dashboard Bot Trading")
-        st.write("Trader stats:", trader_stats)
-        st.write("Model stats:", model_stats)
-        if variants:
-            st.subheader("Variantes activas")
-            table = [
-                {
-                    "gen": v.generation,
-                    **v.params,
-                    **(v.history[-1] if v.history else {}),
-                }
-                for v in variants
-            ]
-            st.table(table)
+    st.subheader("Model stats")
+    st.json(data.get("model", {}))
+
+    variants = data.get("variants")
+    if variants:
+        st.subheader("Variantes activas")
+        st.table(variants)
+
+
+if __name__ == "__main__":
+    main()
