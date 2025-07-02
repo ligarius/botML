@@ -42,8 +42,15 @@ class DataFeed:
 
         for symbol in self.symbols:
             df = self._fetch_binance_klines(symbol)
-            if not df.empty and "symbol" not in df.columns:
+            if df.empty:
+                self.logger.warning(
+                    f"No se recibieron velas para {symbol}; se omite guardado"
+                )
+                continue
+
+            if "symbol" not in df.columns:
                 df["symbol"] = symbol
+
             df.to_csv(f"{symbol}_{self.interval}.csv", index=False)
             self.logger.info(f"Actualizadas velas para {symbol}")
 
