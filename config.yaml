@@ -1,0 +1,8 @@
+api_url: https://api.binance.com
+database_path: binance_1m.db
+symbols: [BTCUSDT, ETHUSDT]
+interval: '1m'
+mode: live   # live | test | backtest
+log_level: INFO
+log_file: bot.log
+watchdog_timeout: 120
