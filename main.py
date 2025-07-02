@@ -17,10 +17,24 @@ import time
 from datetime import datetime
 
 import yaml
+import os
 
 def load_config():
     with open("config.yaml", "r") as f:
         return yaml.safe_load(f)
+
+
+def check_api_keys(config, logger):
+    """Validate API keys when running in live mode."""
+    mode = config.get("mode", "test")
+    logger.info(f"Modo de inicio: {mode}")
+    api_key = os.environ.get("API_KEY", config.get("api_key"))
+    api_secret = os.environ.get("API_SECRET", config.get("api_secret"))
+    if mode == "live":
+        if not api_key or not api_secret:
+            logger.critical("Faltan claves API. No se puede operar en modo live.")
+            raise SystemExit("No hay claves API. Bot detenido.")
+        logger.info("Claves API cargadas correctamente.")
 
 def main():
     config = load_config()
@@ -29,6 +43,7 @@ def main():
     logger.info(f"=== Iniciando Bot de Trading - {start} ===")
     logger.info("Configuraci\u00f3n cargada correctamente.")
     mode = config.get("mode", "live")
+    check_api_keys(config, logger)
 
     feed = DataFeed(config, logger)
     model_manager = ModelManager(config, logger)
@@ -82,13 +97,13 @@ def main():
             metrics = gather_metrics(trader, model_manager, population)
             save_metrics(metrics, "results.json")
             logger.info(
-                f"Balance actual: {metrics['trader'].get('pnl', 0):.2f}"
+                f"Balance actual: {metrics['trader'].get('balance', 0):.2f}"
             )
             time.sleep(config.get("cycle_sleep", 60))
     except KeyboardInterrupt:
         metrics = gather_metrics(trader, model_manager, population)
         logger.info(
-            f"=== Bot detenido ===\nResumen final: Balance: {metrics['trader'].get('pnl', 0):.2f}, Trades: {metrics['trader'].get('trades', 0)}"
+            f"=== Bot detenido ===\nResumen final: Balance: {metrics['trader'].get('balance', 0):.2f}, Trades: {metrics['trader'].get('trades', 0)}"
         )
 
 if __name__ == "__main__":
