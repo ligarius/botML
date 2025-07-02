@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pandas as pd
 
-import bot
-from orchestrator import (
+from botml import data as bot
+from botml.workflow import (
     load_price_data,
     generate_features_and_labels,
     train_random_forest,
