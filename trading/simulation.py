@@ -26,10 +26,11 @@ class Simulator:
         """Process signals updating the virtual balance."""
 
         for signal in signals:
+            trade_amount = signal.get("amount", self.config.get("trade_size", 10))
             fill_price = self._simulate_slippage(signal)
-            self.balance -= fill_price * self.commission_pct
+            self.balance -= trade_amount * fill_price
             self.logger.info(
-                f"Simulación: {signal} ejecutada a {fill_price}, balance: {self.balance:.2f}"
+                f"Trade ejecutado | Modo: Simulado | Símbolo: {signal['symbol']} | Acción: {signal['side']} | Monto: {trade_amount} | Precio: {fill_price:.2f} | Score: {signal.get('score', 'n/a')} | Balance post-trade: {self.balance:.2f}"
             )
 
     def _simulate_slippage(self, signal):

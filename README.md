@@ -17,6 +17,7 @@ API_KEY=your_key
 API_SECRET=your_secret
 ```
 These variables override the `api_key` and `api_secret` placeholders found in `config.yaml`. The key `cycle_sleep` controls the pause in seconds between trading cycles.
+The parameter `trade_size` defines the amount used for each trade.
 
 If a `.env` file exists, the `DataFeed` and `Trader` classes automatically load it at startup using `python-dotenv`.
 

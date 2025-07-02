@@ -61,10 +61,11 @@ class ModelManager:
                     "symbol": df["symbol"][0],
                     "side": "BUY",
                     "score": 1.0,
+                    "amount": self.config.get("trade_size", 10),
                 }
                 signals.append(signal)
                 self.logger.info(
-                    f"Se\u00f1al detectada: {signal['symbol']} | Acci\u00f3n: {signal['side']} | Score: {signal['score']}"
+                    f"Se\u00f1al detectada: {signal['symbol']} | Acci\u00f3n: {signal['side']} | Score: {signal['score']} | Monto: {signal['amount']}"
                 )
         return signals
 
