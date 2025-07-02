@@ -24,6 +24,8 @@ class DataFeed:
         self.api_url = config["api_url"]
         self.symbols = config["symbols"]
         self.interval = config["interval"]
+        self.max_retries = config.get("download_retries", 3)
+        self.timeout = config.get("request_timeout", 10)
 
     def update(self):
         """Download the most recent candles for all symbols and store them."""
@@ -55,30 +57,45 @@ class DataFeed:
             "interval": self.interval,
             "limit": limit,
         }
-        resp = requests.get(self.api_url + endpoint, params=params)
-        if resp.status_code == 200:
-            data = resp.json()
-            df = pd.DataFrame(
-                data,
-                columns=[
-                    "open_time",
-                    "open",
-                    "high",
-                    "low",
-                    "close",
-                    "volume",
-                    "close_time",
-                    "quote_asset_volume",
-                    "number_of_trades",
-                    "taker_buy_base",
-                    "taker_buy_quote",
-                    "ignore",
-                ],
-            )
-            df["open_time"] = pd.to_datetime(df["open_time"], unit="ms")
-            df["close_time"] = pd.to_datetime(df["close_time"], unit="ms")
-            return df
-        self.logger.error(f"Error descargando velas: {resp.text}")
+
+        for attempt in range(1, self.max_retries + 1):
+            try:
+                resp = requests.get(
+                    self.api_url + endpoint,
+                    params=params,
+                    timeout=self.timeout,
+                )
+                if resp.status_code == 200:
+                    data = resp.json()
+                    df = pd.DataFrame(
+                        data,
+                        columns=[
+                            "open_time",
+                            "open",
+                            "high",
+                            "low",
+                            "close",
+                            "volume",
+                            "close_time",
+                            "quote_asset_volume",
+                            "number_of_trades",
+                            "taker_buy_base",
+                            "taker_buy_quote",
+                            "ignore",
+                        ],
+                    )
+                    df["open_time"] = pd.to_datetime(df["open_time"], unit="ms")
+                    df["close_time"] = pd.to_datetime(df["close_time"], unit="ms")
+                    return df
+                self.logger.warning(
+                    f"Intento {attempt}: respuesta {resp.status_code} al descargar velas"
+                )
+            except requests.RequestException as exc:
+                self.logger.warning(f"Intento {attempt}: error descargando velas: {exc}")
+
+        self.logger.error(
+            f"Error descargando velas para {symbol} tras {self.max_retries} intentos"
+        )
         return pd.DataFrame()
 
     def latest_data(self):
