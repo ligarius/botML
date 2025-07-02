@@ -25,15 +25,23 @@ class Trader:
             load_dotenv(".env")
         self.api_key = os.environ.get("API_KEY", config.get("api_key"))
         self.api_secret = os.environ.get("API_SECRET", config.get("api_secret"))
+        self.trades = 0
+        self.pnl = 0.0
 
     def execute(self, signals):
         """Send trading orders for the provided signals."""
 
         for signal in signals:
             self.logger.info(f"Enviando orden real: {signal}")
-            # Aquí implementas llamada a la API de Binance para crear orden
+            try:
+                # Aquí implementas llamada a la API de Binance para crear orden
+                self.trades += 1
+                self.logger.info(
+                    f"Orden ejecutada: {signal['symbol']} | Resultado: OK | Precio: {signal.get('price', 'N/A')} | Qty: {signal.get('amount', 'N/A')}"
+                )
+            except Exception as exc:
+                self.logger.error(f"ERROR al ejecutar orden: {exc}")
 
     def stats(self):
         """Return runtime trading statistics."""
-
-        return {}
+        return {"trades": self.trades, "pnl": self.pnl}

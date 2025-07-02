@@ -29,7 +29,9 @@ class ModelManager:
 
         try:
             model = joblib.load(self.model_path)
-            self.logger.info("Modelo cargado desde disco.")
+            self.logger.info(
+                f"Modelo cargado desde disco: {self.model_path}"
+            )
             return model
         except Exception:
             self.logger.warning("No hay modelo, entrenar desde cero.")
@@ -55,7 +57,15 @@ class ModelManager:
         signals = []
         for df in dfs:
             if not df.empty:
-                signals.append({"symbol": df["symbol"][0], "signal": "buy"})
+                signal = {
+                    "symbol": df["symbol"][0],
+                    "side": "BUY",
+                    "score": 1.0,
+                }
+                signals.append(signal)
+                self.logger.info(
+                    f"Se\u00f1al detectada: {signal['symbol']} | Acci\u00f3n: {signal['side']} | Score: {signal['score']}"
+                )
         return signals
 
     def need_retrain(self):

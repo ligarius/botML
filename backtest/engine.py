@@ -31,7 +31,7 @@ class Backtester:
             Mapping of variant ``id`` to metrics generated during the run.
         """
 
-        self.logger.info("Backtest: simulando histórico completo...")
+        self.logger.info("Iniciando backtest sobre histórico...")
         results: Dict[int, Dict[str, float]] = {}
         if not variants:
             return results
@@ -44,4 +44,9 @@ class Backtester:
             }
             variant.record_result(metrics)
             results[id(variant)] = metrics
+        best = max(results.values(), key=lambda m: m["roi"], default=None)
+        if best:
+            self.logger.info(
+                f"Backtest completado. ROI: {best['roi']:.3f} | Winrate: {best['winrate']:.2f} | Drawdown: {best['drawdown']:.2f}"
+            )
         return results
