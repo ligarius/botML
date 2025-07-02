@@ -1,5 +1,6 @@
 """Utilities for downloading and reading market data from Binance."""
 
+import os
 import requests
 import pandas as pd
 from datetime import datetime
@@ -24,6 +25,8 @@ class DataFeed:
         self.api_url = config["api_url"]
         self.symbols = config["symbols"]
         self.interval = config["interval"]
+        self.api_key = os.environ.get("API_KEY", config.get("api_key"))
+        self.api_secret = os.environ.get("API_SECRET", config.get("api_secret"))
         self.max_retries = config.get("download_retries", 3)
         self.timeout = config.get("request_timeout", 10)
 

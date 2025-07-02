@@ -134,6 +134,14 @@ Herramientas de análisis automático de errores y eventos para aprender del pas
 * **Revisa dependencias:** Mantén `requirements.txt` actualizado y libre de vulnerabilidades conocidas.
 * **Logs limpios:** Filtra cualquier información sensible antes de loggear.
 
+### Configuración de credenciales
+
+Los campos `api_key` y `api_secret` en `config.yaml` son solo marcadores. Coloca
+las credenciales reales en un archivo `.env` en la raíz con las claves `API_KEY`
+y `API_SECRET`, o bien expórtalas como variables de entorno antes de ejecutar el
+bot. Los módulos `Trader` y `DataFeed` leerán esas variables priorizándolas
+sobre el archivo de configuración.
+
 ---
 
 ## Mantenimiento y Escalabilidad

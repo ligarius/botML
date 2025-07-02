@@ -1,4 +1,6 @@
 api_url: https://api.binance.com
+api_key: "YOUR_API_KEY"
+api_secret: "YOUR_API_SECRET"
 database_path: binance_1m.db
 symbols: [BTCUSDT, ETHUSDT]
 interval: '1m'
