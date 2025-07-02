@@ -25,7 +25,10 @@ Este archivo centraliza las normas y recomendaciones para el desarrollo y operac
 * **/backtest/** – Motor de simulación histórica, métricas, validación.
 * **/tests/** – Pruebas unitarias y de integración.
 * **config.yaml** – Configuración principal (usar variables de entorno para secretos).
-* **orchestrator.py** – Loop maestro: orquesta descarga, entrenamiento, evaluación.
+* **botml/data.py** – Utilidades de descarga y almacenamiento de datos.
+* **botml/workflow.py** – Funciones centrales de orquestación y backtest.
+* **orchestrator.py** – Envoltura ligera que expone `botml.workflow`.
+* **bot.py** – Envoltura ligera que reexporta `botml.data`.
 * **live\_trading.py** – Solo ejecución real; debe poder desactivarse en modo research.
 
 **Regla:**
