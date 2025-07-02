@@ -58,20 +58,24 @@ class ModelManager:
         for df in dfs:
             if not df.empty:
                 price = float(df["close"].astype(float).iloc[-1])
+                usdt_amount = self.config.get("trade_size", 10)
+                qty = usdt_amount / price if price else 0
                 signal = {
                     "symbol": df["symbol"].iloc[-1],
                     "side": "BUY",
                     "score": 1.0,
-                    "amount": self.config.get("trade_size", 10),
+                    "usdt_amount": usdt_amount,
                     "price": price,
+                    "qty": qty,
                 }
                 signals.append(signal)
                 self.logger.info(
-                    "Se\u00f1al detectada | Symbol: %s | Acci\u00f3n: %s | Score: %s | Monto: %s | Precio: %.2f",
+                    "Se\u00f1al detectada | Symbol: %s | Acci\u00f3n: %s | Score: %s | Monto USDT: %s | Qty: %.8f | Precio: %.2f",
                     signal.get("symbol", "n/a"),
                     signal.get("side", "n/a"),
                     signal.get("score", "n/a"),
-                    signal.get("amount", "n/a"),
+                    signal.get("usdt_amount", "n/a"),
+                    signal.get("qty", 0.0),
                     signal.get("price", float("nan")),
                 )
         return signals
