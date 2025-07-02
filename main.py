@@ -4,7 +4,6 @@ from models.manager import ModelManager
 from trading.live import Trader
 from trading.simulation import Simulator
 from backtest.engine import Backtester
-from dashboard.dashboard import Dashboard
 from logging_utils.logging import setup_logging
 from watchdog.watchdog import Watchdog
 from strategy import StrategyVariant
@@ -13,6 +12,7 @@ from evolution import (
     save_population,
     load_population,
 )
+from modules.analytics import gather_metrics, save_metrics
 import time
 
 import yaml
@@ -31,7 +31,6 @@ def main():
     trader = Trader(config, logger)
     simulator = Simulator(config, logger)
     backtester = Backtester(config, logger)
-    dashboard = Dashboard(config, logger)
     watchdog = Watchdog(config, logger)
 
     population_path = config.get("population_path", "population.json")
@@ -68,7 +67,8 @@ def main():
             top_pct=selection_pct,
         )
         save_population(population, population_path)
-        dashboard.update(trader.stats(), model_manager.stats(), population)
+        metrics = gather_metrics(trader, model_manager, population)
+        save_metrics(metrics, "results.json")
         time.sleep(config.get("cycle_sleep", 60))
 
 if __name__ == "__main__":
