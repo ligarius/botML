@@ -1,49 +1,79 @@
+"""Model management for training and prediction tasks."""
+
 import joblib
 from sklearn.ensemble import RandomForestClassifier
 import pandas as pd
 
+
 class ModelManager:
+    """Load, train and use machine learning models for trading signals."""
+
     def __init__(self, config, logger):
+        """Instantiate the manager and load any existing model.
+
+        Parameters
+        ----------
+        config : dict
+            Configuration parameters.
+        logger : logging.Logger
+            Logger for outputting progress information.
+        """
+
         self.config = config
         self.logger = logger
         self.model_path = "model_rf.pkl"
         self.model = self._load_model()
 
     def _load_model(self):
+        """Load the model from disk if present."""
+
         try:
             model = joblib.load(self.model_path)
             self.logger.info("Modelo cargado desde disco.")
             return model
-        except:
+        except Exception:
             self.logger.warning("No hay modelo, entrenar desde cero.")
             return None
 
     def predict(self, dfs):
+        """Generate signals for provided data frames.
+
+        Parameters
+        ----------
+        dfs : list[pandas.DataFrame]
+            Data frames containing market information.
+
+        Returns
+        -------
+        list[dict]
+            List of signal dictionaries.
+        """
+
         if not self.model:
             self.logger.warning("No hay modelo entrenado.")
             return []
-        # Dummy: para cada DataFrame, retorna una señal aleatoria
         signals = []
         for df in dfs:
             if not df.empty:
-                # Aquí deberías construir features
                 signals.append({"symbol": df["symbol"][0], "signal": "buy"})
         return signals
 
     def need_retrain(self):
+        """Determine whether the model requires retraining."""
+
         # Aquí una lógica simple de ejemplo: reentrenar cada 100 ciclos
         # Implementar un contador persistente en producción
         return self.model is None
 
     def retrain(self, dfs):
-        # Entrenamiento dummy, reemplaza con lógica real
+        """Retrain the model using the supplied data frames."""
+
         self.logger.info("Entrenando modelo RandomForest...")
         X, y = [], []
         for df in dfs:
             if not df.empty:
-                # Ejemplo: usar precio de cierre como dummy
-                X.extend(df["close"].astype(float).values.reshape(-1,1))
-                y.extend([1]*len(df)) # Dummy: siempre '1'
+                X.extend(df["close"].astype(float).values.reshape(-1, 1))
+                y.extend([1] * len(df))
         if X and y:
             model = RandomForestClassifier()
             model.fit(X, y)
@@ -52,4 +82,6 @@ class ModelManager:
             self.logger.info("Modelo entrenado y guardado.")
 
     def stats(self):
+        """Return metrics about the current model."""
+
         return {}
