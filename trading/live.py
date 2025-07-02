@@ -34,10 +34,13 @@ class Trader:
         for signal in signals:
             self.logger.info(f"Enviando orden real: {signal}")
             try:
+                trade_amount = signal.get("amount", self.config.get("trade_size", 10))
+                fill_price = float(signal.get("price", 0))
                 # Aquí implementas llamada a la API de Binance para crear orden
                 self.trades += 1
+                self.pnl -= trade_amount * fill_price
                 self.logger.info(
-                    f"Orden ejecutada: {signal['symbol']} | Resultado: OK | Precio: {signal.get('price', 'N/A')} | Qty: {signal.get('amount', 'N/A')}"
+                    f"Trade ejecutado | Modo: Real | Símbolo: {signal['symbol']} | Acción: {signal['side']} | Monto: {trade_amount} | Precio: {fill_price:.2f} | Score: {signal.get('score', 'n/a')} | Balance post-trade: {self.pnl:.2f}"
                 )
             except Exception as exc:
                 self.logger.error(f"ERROR al ejecutar orden: {exc}")
