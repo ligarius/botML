@@ -7,3 +7,5 @@ log_level: INFO
 log_file: bot.log
 watchdog_timeout: 120
 cycle_sleep: 60
+download_retries: 3
+request_timeout: 10
