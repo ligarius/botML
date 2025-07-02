@@ -57,15 +57,22 @@ class ModelManager:
         signals = []
         for df in dfs:
             if not df.empty:
+                price = float(df["close"].astype(float).iloc[-1])
                 signal = {
-                    "symbol": df["symbol"][0],
+                    "symbol": df["symbol"].iloc[-1],
                     "side": "BUY",
                     "score": 1.0,
                     "amount": self.config.get("trade_size", 10),
+                    "price": price,
                 }
                 signals.append(signal)
                 self.logger.info(
-                    f"Se\u00f1al detectada: {signal['symbol']} | Acci\u00f3n: {signal['side']} | Score: {signal['score']} | Monto: {signal['amount']}"
+                    "Se\u00f1al detectada | Symbol: %s | Acci\u00f3n: %s | Score: %s | Monto: %s | Precio: %.2f",
+                    signal.get("symbol", "n/a"),
+                    signal.get("side", "n/a"),
+                    signal.get("score", "n/a"),
+                    signal.get("amount", "n/a"),
+                    signal.get("price", float("nan")),
                 )
         return signals
 
