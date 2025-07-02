@@ -58,3 +58,58 @@ def test_update_and_latest_data_include_symbol(tmp_path, memory_logger, monkeypa
     df = feed.latest_data()[0]
     assert "symbol" in df.columns
     assert df["symbol"].iloc[0] == "AAA"
+
+
+def test_update_creates_csv_from_request(tmp_path, memory_logger, monkeypatch):
+    """DataFeed.update should save klines returned via requests.get."""
+    logger, _ = memory_logger
+    config = {"api_url": "http://test", "symbols": ["BBB"], "interval": "1m"}
+    feed = DataFeed(config, logger)
+    monkeypatch.chdir(tmp_path)
+
+    sample_payload = [
+        [
+            0,
+            "1",
+            "2",
+            "0.5",
+            "1.5",
+            "100",
+            1,
+            "200",
+            10,
+            "50",
+            "75",
+            "0",
+        ]
+    ]
+
+    class FakeResponse:
+        status_code = 200
+
+        def json(self):
+            return sample_payload
+
+    monkeypatch.setattr(requests, "get", lambda *a, **k: FakeResponse())
+
+    feed.update()
+    file_path = tmp_path / "BBB_1m.csv"
+    assert file_path.exists()
+    df = pd.read_csv(file_path)
+    expected_cols = [
+        "open_time",
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume",
+        "close_time",
+        "quote_asset_volume",
+        "number_of_trades",
+        "taker_buy_base",
+        "taker_buy_quote",
+        "ignore",
+        "symbol",
+    ]
+    assert list(df.columns) == expected_cols
+    assert df["symbol"].iloc[0] == "BBB"
