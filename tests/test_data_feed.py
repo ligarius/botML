@@ -113,3 +113,23 @@ def test_update_creates_csv_from_request(tmp_path, memory_logger, monkeypatch):
     ]
     assert list(df.columns) == expected_cols
     assert df["symbol"].iloc[0] == "BBB"
+
+
+def test_env_file_overrides_config(tmp_path, memory_logger, monkeypatch):
+    """Environment variables from a .env file should override config values."""
+    logger, _ = memory_logger
+    env_path = tmp_path / ".env"
+    env_path.write_text("API_KEY=envkey\nAPI_SECRET=envsecret\n")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("API_KEY", raising=False)
+    monkeypatch.delenv("API_SECRET", raising=False)
+    config = {
+        "api_url": "",
+        "symbols": ["T"],
+        "interval": "1m",
+        "api_key": "cfg",
+        "api_secret": "cfg",
+    }
+    feed = DataFeed(config, logger)
+    assert feed.api_key == "envkey"
+    assert feed.api_secret == "envsecret"
