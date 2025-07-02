@@ -27,6 +27,13 @@ python main.py
 ```
 Ensure your `.env` file is in place so the bot can authenticate with the exchange.
 
+## Running the Dashboard
+Start the Streamlit interface in a separate process:
+```bash
+streamlit run dashboard/dashboard.py
+```
+When `main.py` runs without Streamlit, dashboard updates are skipped to avoid warning messages.
+
 ## Running Tests
 Use pytest to run the automated tests:
 ```bash
