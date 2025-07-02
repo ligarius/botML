@@ -11,3 +11,7 @@ watchdog_timeout: 120
 cycle_sleep: 60
 download_retries: 3
 request_timeout: 10
+population_path: population.json
+population_size: 4
+mutation_rate: 0.1
+selection_pct: 0.5
