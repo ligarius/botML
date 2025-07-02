@@ -6,3 +6,4 @@ mode: live   # live | test | backtest
 log_level: INFO
 log_file: bot.log
 watchdog_timeout: 120
+cycle_sleep: 60

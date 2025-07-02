@@ -6,6 +6,7 @@ from backtest.engine import Backtester
 from dashboard.dashboard import Dashboard
 from logging_utils.logging import setup_logging
 from watchdog.watchdog import Watchdog
+import time
 
 import yaml
 
@@ -41,6 +42,7 @@ def main():
         if model_manager.need_retrain():
             model_manager.retrain(feed.history())
         dashboard.update(trader.stats(), model_manager.stats())
+        time.sleep(config.get("cycle_sleep", 60))
 
 if __name__ == "__main__":
     main()

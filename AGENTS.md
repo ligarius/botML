@@ -52,6 +52,8 @@ Manejo avanzado de errores y reconexión automática en todas las conexiones con
 
 Persistencia de estado: el bot debe guardar su estado (último modelo, posiciones, histórico de señales, parámetros) para poder recuperarse exactamente donde quedó después de un crash o reinicio.
 
+Intervalo de ciclo configurable: la clave `cycle_sleep` en `config.yaml` define en segundos la pausa entre iteraciones del loop principal.
+
 2. Entrenamiento y Evolución Autónoma
 Entrenamiento automático y periódico del modelo (por tiempo, cantidad de trades o performance).
 
