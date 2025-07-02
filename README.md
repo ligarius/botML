@@ -7,7 +7,7 @@ BotML is an automated intraday trading bot that aims to operate fully autonomous
 ```bash
 pip install -r requirements.txt
 ```
-Python 3.11 or newer is recommended.
+Python 3.11 or newer is recommended. The package list includes `python-dotenv` for reading configuration from a `.env` file.
 
 ## Configuration
 Edit `config.yaml` to adjust API endpoints, symbols and other runtime options. Real API credentials are **not** stored in the YAML file; create a `.env` file in the project root with:
@@ -17,6 +17,8 @@ API_KEY=your_key
 API_SECRET=your_secret
 ```
 These variables override the `api_key` and `api_secret` placeholders found in `config.yaml`. The key `cycle_sleep` controls the pause in seconds between trading cycles.
+
+If a `.env` file exists, the `DataFeed` and `Trader` classes automatically load it at startup using `python-dotenv`.
 
 ## Running the Bot
 Launch the bot with:

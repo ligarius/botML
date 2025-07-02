@@ -2,6 +2,7 @@
 
 
 import os
+from dotenv import load_dotenv
 
 
 class Trader:
@@ -20,6 +21,8 @@ class Trader:
 
         self.config = config
         self.logger = logger
+        if os.path.exists(".env"):
+            load_dotenv(".env")
         self.api_key = os.environ.get("API_KEY", config.get("api_key"))
         self.api_secret = os.environ.get("API_SECRET", config.get("api_secret"))
 

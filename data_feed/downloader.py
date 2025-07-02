@@ -4,6 +4,7 @@ import os
 import requests
 import pandas as pd
 from datetime import datetime
+from dotenv import load_dotenv
 
 
 class DataFeed:
@@ -22,6 +23,8 @@ class DataFeed:
 
         self.config = config
         self.logger = logger
+        if os.path.exists(".env"):
+            load_dotenv(".env")
         self.api_url = config["api_url"]
         self.symbols = config["symbols"]
         self.interval = config["interval"]
