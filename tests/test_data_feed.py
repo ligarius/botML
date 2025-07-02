@@ -115,6 +115,21 @@ def test_update_creates_csv_from_request(tmp_path, memory_logger, monkeypatch):
     assert df["symbol"].iloc[0] == "BBB"
 
 
+def test_update_skips_empty_dataframe(tmp_path, memory_logger, monkeypatch):
+    """DataFeed.update should not create a CSV when no data is returned."""
+    logger, _ = memory_logger
+    config = {"api_url": "", "symbols": ["EMPTY"], "interval": "1m"}
+    feed = DataFeed(config, logger)
+    monkeypatch.chdir(tmp_path)
+
+    monkeypatch.setattr(
+        DataFeed, "_fetch_binance_klines", lambda *a, **k: pd.DataFrame(), raising=False
+    )
+
+    feed.update()
+    assert not (tmp_path / "EMPTY_1m.csv").exists()
+
+
 def test_env_file_overrides_config(tmp_path, memory_logger, monkeypatch):
     """Environment variables from a .env file should override config values."""
     logger, _ = memory_logger
